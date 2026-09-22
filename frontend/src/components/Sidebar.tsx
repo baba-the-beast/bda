@@ -25,7 +25,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, onSelectPage, use
     { id: 'load-profile' as PageId, label: 'Load Profile', icon: 'ssid_chart', badge: null },
     { id: 'sub-meters' as PageId, label: 'Sub-Meters', icon: 'speed', badge: null },
     { id: 'data-engine' as PageId, label: 'Pipelines & Batch', icon: 'schema', badge: 'HDFS' },
-    { id: 'substation' as PageId, label: 'Transformer Substation', icon: 'electric_bolt', badge: null },
+    {
+      id: 'substation' as PageId,
+      label: 'Transformer Substation',
+      icon: 'electric_bolt',
+      badge: null,
+    },
   ];
 
   const analyticalNavItems = [
@@ -37,7 +42,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, onSelectPage, use
   ];
 
   if (userRole === 'ADMIN') {
-    analyticalNavItems.push({ id: 'admin' as PageId, label: 'Administration', icon: 'admin_panel_settings' });
+    analyticalNavItems.push({
+      id: 'admin' as PageId,
+      label: 'Administration',
+      icon: 'admin_panel_settings',
+    });
   }
 
   return (
@@ -69,9 +78,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, onSelectPage, use
                   <span>{item.label}</span>
                 </div>
                 {item.badge && (
-                  <span className={`px-1 py-0.2 text-[9px] font-bold ${
-                    isActive ? 'bg-black/30 text-white' : 'bg-primary/20 text-primary border border-primary/40'
-                  }`}>
+                  <span
+                    className={`px-1 py-0.2 text-[9px] font-bold ${
+                      isActive
+                        ? 'bg-black/30 text-white'
+                        : 'bg-primary/20 text-primary border border-primary/40'
+                    }`}
+                  >
                     {item.badge}
                   </span>
                 )}

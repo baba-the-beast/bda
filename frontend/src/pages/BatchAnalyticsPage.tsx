@@ -1,16 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { Download, Calendar, Clock, BarChart2, PieChart as PieIcon, Flame, Filter } from 'lucide-react';
+import { Download, Calendar, Clock, BarChart2, PieChart as PieIcon, Flame } from 'lucide-react';
 import { api } from '../api';
 import { Dataset, DailyAggregate, HourlyAggregate, MonthlyAggregate, PeakEvent } from '../types';
 
 export const BatchAnalyticsPage: React.FC = () => {
   const [datasets, setDatasets] = useState<Dataset[]>([]);
   const [selectedDataset, setSelectedDataset] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'daily' | 'hourly' | 'monthly' | 'submeters' | 'peak'>('daily');
+  const [activeTab, setActiveTab] = useState<'daily' | 'hourly' | 'monthly' | 'submeters' | 'peak'>(
+    'daily',
+  );
 
   const [dailyData, setDailyData] = useState<DailyAggregate[]>([]);
   const [hourlyData, setHourlyData] = useState<HourlyAggregate[]>([]);
-  const [monthlyData, setMonthlyData] = useState<MonthlyAggregate[]>([]);
+  const [, setMonthlyData] = useState<MonthlyAggregate[]>([]);
   const [submetersData, setSubmetersData] = useState<any>(null);
   const [peakData, setPeakData] = useState<PeakEvent[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -23,9 +25,10 @@ export const BatchAnalyticsPage: React.FC = () => {
     try {
       const list = await api.listDatasets();
       setDatasets(list);
-      if (list.length > 0) {
-        setSelectedDataset(list[0].id);
-        fetchAnalytics(list[0].id, activeTab);
+      const first = list[0];
+      if (first) {
+        setSelectedDataset(first.id);
+        fetchAnalytics(first.id, activeTab);
       }
     } catch (e) {
       console.error(e);
@@ -73,7 +76,7 @@ export const BatchAnalyticsPage: React.FC = () => {
     try {
       await api.downloadFile(
         `/analytics/export?dataset_id=${selectedDataset}&export_type=${activeTab}&export_format=${format}`,
-        `analytics_${selectedDataset}_${activeTab}.${format}`
+        `analytics_${selectedDataset}_${activeTab}.${format}`,
       );
     } catch (err: any) {
       console.error('Export failed:', err);
@@ -187,17 +190,21 @@ export const BatchAnalyticsPage: React.FC = () => {
       </div>
 
       {loading && (
-        <div className="p-12 text-center text-slate-400">Loading analytical records from MongoDB...</div>
+        <div className="p-12 text-center text-slate-400">
+          Loading analytical records from MongoDB...
+        </div>
       )}
 
       {/* Tab Contents */}
       {!loading && activeTab === 'daily' && (
         <div className="space-y-6">
           <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800">
-            <h3 className="text-base font-semibold text-white mb-4">Daily Total Consumption (kWh)</h3>
+            <h3 className="text-base font-semibold text-white mb-4">
+              Daily Total Consumption (kWh)
+            </h3>
             {/* Simple Accessible Responsive SVG Chart */}
             <div className="h-64 flex items-end space-x-2 pt-6">
-              {dailyData.slice(-14).map((d, i) => {
+              {dailyData.slice(-14).map((d) => {
                 const maxKwh = Math.max(...dailyData.map((x) => x.total_consumption_kwh), 60);
                 const heightPct = Math.round((d.total_consumption_kwh / maxKwh) * 100);
                 return (
@@ -238,7 +245,9 @@ export const BatchAnalyticsPage: React.FC = () => {
                     <td className="p-3 font-mono text-cyan-400">{d.date}</td>
                     <td className="p-3 font-semibold text-white">{d.total_consumption_kwh}</td>
                     <td className="p-3">{d.average_power}</td>
-                    <td className="p-3 text-slate-400">{d.minimum_power} / {d.maximum_power}</td>
+                    <td className="p-3 text-slate-400">
+                      {d.minimum_power} / {d.maximum_power}
+                    </td>
                     <td className="p-3">{d.sub_metering_1_total} Wh</td>
                     <td className="p-3">{d.sub_metering_2_total} Wh</td>
                     <td className="p-3">{d.sub_metering_3_total} Wh</td>
@@ -254,7 +263,9 @@ export const BatchAnalyticsPage: React.FC = () => {
       {!loading && activeTab === 'hourly' && (
         <div className="space-y-6">
           <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800">
-            <h3 className="text-base font-semibold text-white mb-4">Diurnal Hourly Power Distribution (00:00 - 23:00)</h3>
+            <h3 className="text-base font-semibold text-white mb-4">
+              Diurnal Hourly Power Distribution (00:00 - 23:00)
+            </h3>
             <div className="h-64 flex items-end space-x-2 pt-6">
               {hourlyData.map((h) => {
                 const maxAvg = Math.max(...hourlyData.map((x) => x.average_power), 4.5);
@@ -280,33 +291,50 @@ export const BatchAnalyticsPage: React.FC = () => {
       {!loading && activeTab === 'submeters' && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800">
-            <span className="text-xs font-semibold text-slate-400 uppercase">Sub-Metering No. 1</span>
+            <span className="text-xs font-semibold text-slate-400 uppercase">
+              Sub-Metering No. 1
+            </span>
             <div className="text-xl font-bold text-white mt-1">Kitchen Appliances</div>
             <p className="text-xs text-slate-400 mt-1">Dishwasher, microwave, oven</p>
             <div className="text-3xl font-extrabold text-cyan-400 mt-4">
-              {submetersData?.kitchen_kwh || '0'} <span className="text-sm font-normal text-slate-400">kWh</span>
+              {submetersData?.kitchen_kwh || '0'}{' '}
+              <span className="text-sm font-normal text-slate-400">kWh</span>
             </div>
-            <div className="text-sm text-slate-300 mt-1 font-semibold">{submetersData?.kitchen_percentage || '0'}% of active total</div>
+            <div className="text-sm text-slate-300 mt-1 font-semibold">
+              {submetersData?.kitchen_percentage || '0'}% of active total
+            </div>
           </div>
 
           <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800">
-            <span className="text-xs font-semibold text-slate-400 uppercase">Sub-Metering No. 2</span>
+            <span className="text-xs font-semibold text-slate-400 uppercase">
+              Sub-Metering No. 2
+            </span>
             <div className="text-xl font-bold text-white mt-1">Laundry &amp; Lighting</div>
             <p className="text-xs text-slate-400 mt-1">Washing machine, dryer, fridge</p>
             <div className="text-3xl font-extrabold text-indigo-400 mt-4">
-              {submetersData?.laundry_kwh || '0'} <span className="text-sm font-normal text-slate-400">kWh</span>
+              {submetersData?.laundry_kwh || '0'}{' '}
+              <span className="text-sm font-normal text-slate-400">kWh</span>
             </div>
-            <div className="text-sm text-slate-300 mt-1 font-semibold">{submetersData?.laundry_percentage || '0'}% of active total</div>
+            <div className="text-sm text-slate-300 mt-1 font-semibold">
+              {submetersData?.laundry_percentage || '0'}% of active total
+            </div>
           </div>
 
           <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800">
-            <span className="text-xs font-semibold text-slate-400 uppercase">Sub-Metering No. 3</span>
+            <span className="text-xs font-semibold text-slate-400 uppercase">
+              Sub-Metering No. 3
+            </span>
             <div className="text-xl font-bold text-white mt-1">Climate &amp; Heating</div>
-            <p className="text-xs text-slate-400 mt-1">Electric water heater &amp; air conditioning</p>
+            <p className="text-xs text-slate-400 mt-1">
+              Electric water heater &amp; air conditioning
+            </p>
             <div className="text-3xl font-extrabold text-emerald-400 mt-4">
-              {submetersData?.climate_kwh || '0'} <span className="text-sm font-normal text-slate-400">kWh</span>
+              {submetersData?.climate_kwh || '0'}{' '}
+              <span className="text-sm font-normal text-slate-400">kWh</span>
             </div>
-            <div className="text-sm text-slate-300 mt-1 font-semibold">{submetersData?.climate_percentage || '0'}% of active total</div>
+            <div className="text-sm text-slate-300 mt-1 font-semibold">
+              {submetersData?.climate_percentage || '0'}% of active total
+            </div>
           </div>
         </div>
       )}

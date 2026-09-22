@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Zap, Activity, HardDrive, Cpu, Flame, Layers, ArrowUpRight, CheckCircle2 } from 'lucide-react';
+import { Zap, Activity, HardDrive, Flame, Layers, ArrowUpRight, CheckCircle2 } from 'lucide-react';
 import { api } from '../api';
 import { Dataset } from '../types';
 
@@ -11,7 +11,7 @@ export const OverviewPage: React.FC<OverviewProps> = ({ onNavigate }) => {
   const [datasets, setDatasets] = useState<Dataset[]>([]);
   const [selectedDataset, setSelectedDataset] = useState<string>('');
   const [overview, setOverview] = useState<any>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
     loadData();
@@ -22,7 +22,7 @@ export const OverviewPage: React.FC<OverviewProps> = ({ onNavigate }) => {
     try {
       const dsList = await api.listDatasets();
       setDatasets(dsList);
-      const activeId = dsList.length > 0 ? dsList[0].id : '';
+      const activeId = dsList[0]?.id ?? '';
       setSelectedDataset(activeId);
       const ov = await api.getOverview(activeId);
       setOverview(ov);
@@ -82,7 +82,9 @@ export const OverviewPage: React.FC<OverviewProps> = ({ onNavigate }) => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 shadow-sm relative overflow-hidden">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Processed Records</span>
+            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+              Processed Records
+            </span>
             <div className="p-2 rounded-lg bg-cyan-500/10 text-cyan-400">
               <HardDrive className="w-5 h-5" />
             </div>
@@ -100,14 +102,19 @@ export const OverviewPage: React.FC<OverviewProps> = ({ onNavigate }) => {
 
         <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 shadow-sm relative overflow-hidden">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Consumption</span>
+            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+              Total Consumption
+            </span>
             <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
               <Zap className="w-5 h-5" />
             </div>
           </div>
           <div className="mt-4">
             <div className="text-2xl font-bold text-white">
-              {overview?.total_consumption_kwh ? Number(overview.total_consumption_kwh).toLocaleString() : '745.28'} <span className="text-sm font-normal text-slate-400">kWh</span>
+              {overview?.total_consumption_kwh
+                ? Number(overview.total_consumption_kwh).toLocaleString()
+                : '745.28'}{' '}
+              <span className="text-sm font-normal text-slate-400">kWh</span>
             </div>
             <div className="text-xs text-slate-400 mt-1">Aggregated via MapReduce / Hive</div>
           </div>
@@ -115,14 +122,17 @@ export const OverviewPage: React.FC<OverviewProps> = ({ onNavigate }) => {
 
         <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 shadow-sm relative overflow-hidden">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Average Power</span>
+            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+              Average Power
+            </span>
             <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400">
               <Activity className="w-5 h-5" />
             </div>
           </div>
           <div className="mt-4">
             <div className="text-2xl font-bold text-white">
-              {overview?.average_power_kw || '2.218'} <span className="text-sm font-normal text-slate-400">kW</span>
+              {overview?.average_power_kw || '2.218'}{' '}
+              <span className="text-sm font-normal text-slate-400">kW</span>
             </div>
             <div className="text-xs text-slate-400 mt-1">Minute-level household average</div>
           </div>
@@ -130,14 +140,17 @@ export const OverviewPage: React.FC<OverviewProps> = ({ onNavigate }) => {
 
         <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 shadow-sm relative overflow-hidden">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Peak Power Spike</span>
+            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+              Peak Power Spike
+            </span>
             <div className="p-2 rounded-lg bg-amber-500/10 text-amber-400">
               <Flame className="w-5 h-5" />
             </div>
           </div>
           <div className="mt-4">
             <div className="text-2xl font-bold text-white">
-              {overview?.peak_power_kw || '11.170'} <span className="text-sm font-normal text-slate-400">kW</span>
+              {overview?.peak_power_kw || '11.170'}{' '}
+              <span className="text-sm font-normal text-slate-400">kW</span>
             </div>
             <div className="text-xs text-slate-400 mt-1">Identified peak period load</div>
           </div>
@@ -148,7 +161,10 @@ export const OverviewPage: React.FC<OverviewProps> = ({ onNavigate }) => {
       <div className="p-6 rounded-2xl bg-gradient-to-r from-slate-900 to-slate-900/60 border border-slate-800">
         <div className="flex items-center space-x-2 text-cyan-400 text-xs font-semibold uppercase tracking-wider mb-2">
           <Layers className="w-4 h-4" />
-          <span>Logical Big Data Pipeline (Store &bull; Process &bull; Query &bull; Analyze &bull; Stream &bull; Visualize)</span>
+          <span>
+            Logical Big Data Pipeline (Store &bull; Process &bull; Query &bull; Analyze &bull;
+            Stream &bull; Visualize)
+          </span>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 mt-4 text-center">
           <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/50">
@@ -193,7 +209,8 @@ export const OverviewPage: React.FC<OverviewProps> = ({ onNavigate }) => {
             <ArrowUpRight className="w-4 h-4 text-slate-500 group-hover:text-cyan-400 transition" />
           </div>
           <p className="text-xs text-slate-400 mt-2">
-            Explore daily consumption timelines, diurnal hourly distributions, monthly trends, and sub-meter comparisons.
+            Explore daily consumption timelines, diurnal hourly distributions, monthly trends, and
+            sub-meter comparisons.
           </p>
         </button>
 
@@ -206,7 +223,8 @@ export const OverviewPage: React.FC<OverviewProps> = ({ onNavigate }) => {
             <ArrowUpRight className="w-4 h-4 text-slate-500 group-hover:text-cyan-400 transition" />
           </div>
           <p className="text-xs text-slate-400 mt-2">
-            Control the live smart-meter event replay, view real-time power gauges, and inspect 1-min &amp; 5-min Spark streaming windows.
+            Control the live smart-meter event replay, view real-time power gauges, and inspect
+            1-min &amp; 5-min Spark streaming windows.
           </p>
         </button>
 
@@ -219,7 +237,8 @@ export const OverviewPage: React.FC<OverviewProps> = ({ onNavigate }) => {
             <ArrowUpRight className="w-4 h-4 text-slate-500 group-hover:text-cyan-400 transition" />
           </div>
           <p className="text-xs text-slate-400 mt-2">
-            Run approved parameterized HiveQL analytics against HDFS datasets and export aggregated results as CSV or JSON.
+            Run approved parameterized HiveQL analytics against HDFS datasets and export aggregated
+            results as CSV or JSON.
           </p>
         </button>
       </div>

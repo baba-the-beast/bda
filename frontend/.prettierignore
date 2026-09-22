@@ -1,0 +1,6 @@
+dist
+node_modules
+stitch
+playwright-report
+test-results
+package-lock.json

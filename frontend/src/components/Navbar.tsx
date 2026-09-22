@@ -26,10 +26,18 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
       {/* Left: Brand Identity */}
       <div className="flex items-center gap-space-lg">
         <div className="flex items-center gap-2">
-          <img src="/logo.svg" alt="VoltPulse Industrial Telemetry Logo" className="h-8 w-8 object-contain" />
+          <img
+            src="/logo.svg"
+            alt="VoltPulse Industrial Telemetry Logo"
+            className="h-8 w-8 object-contain"
+          />
           <div className="flex flex-col">
-            <span className="font-mono text-base font-bold text-on-surface tracking-wider">GRIDPULSE</span>
-            <span className="font-mono text-[10px] text-outline tracking-wider uppercase">Energy Analytics Telemetry</span>
+            <span className="font-mono text-base font-bold text-on-surface tracking-wider">
+              GRIDPULSE
+            </span>
+            <span className="font-mono text-[10px] text-outline tracking-wider uppercase">
+              Energy Analytics Telemetry
+            </span>
           </div>
         </div>
       </div>

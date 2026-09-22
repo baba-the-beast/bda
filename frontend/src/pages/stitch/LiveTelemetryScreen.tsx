@@ -5,7 +5,7 @@ interface LiveTelemetryScreenProps {
   onNavigate?: (pageId: string) => void;
 }
 
-export const LiveTelemetryScreen: React.FC<LiveTelemetryScreenProps> = ({ onNavigate }) => {
+export const LiveTelemetryScreen: React.FC<LiveTelemetryScreenProps> = () => {
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
   const [activePower, setActivePower] = useState<number>(4.218);
   const [reactivePower, setReactivePower] = useState<number>(0.642);
@@ -21,7 +21,7 @@ export const LiveTelemetryScreen: React.FC<LiveTelemetryScreenProps> = ({ onNavi
   });
   const [anomalyAlert, setAnomalyAlert] = useState<boolean>(false);
   const [sparkLatencyMs, setSparkLatencyMs] = useState<number>(42);
-  const [consumerLag, setConsumerLag] = useState<number>(0);
+  const [consumerLag] = useState<number>(0);
   const [selectedDatasetId, setSelectedDatasetId] = useState<string>('');
   const [datasets, setDatasets] = useState<any[]>([]);
   const eventSourceRef = useRef<EventSource | null>(null);
@@ -42,8 +42,9 @@ export const LiveTelemetryScreen: React.FC<LiveTelemetryScreenProps> = ({ onNavi
     try {
       const list = await api.getDatasets();
       setDatasets(list || []);
-      if (list && list.length > 0) {
-        setSelectedDatasetId(list[0].id);
+      const first = list?.[0];
+      if (first) {
+        setSelectedDatasetId(first.id);
       }
     } catch {
       // ignore
@@ -121,7 +122,7 @@ export const LiveTelemetryScreen: React.FC<LiveTelemetryScreenProps> = ({ onNavi
             setSparkLatencyMs(Math.floor(25 + Math.random() * 30));
           }
         },
-        (err: any) => {
+        () => {
           console.warn('Live telemetry SSE fallback mode');
         }
       );

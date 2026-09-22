@@ -36,6 +36,9 @@ node_modules/
 frontend/node_modules/
 frontend/dist/
 .npm/
+frontend/playwright-report/
+frontend/test-results/
+frontend/coverage/
 
 # Large Datasets and Extracted Files
 data/raw/*.txt

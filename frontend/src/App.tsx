@@ -92,10 +92,14 @@ export const App: React.FC = () => {
 
           <form onSubmit={handleLogin} className="space-y-4 font-mono text-xs">
             <div>
-              <label className="block text-outline uppercase tracking-wider mb-1">
+              <label
+                htmlFor="login-email"
+                className="block text-outline uppercase tracking-wider mb-1"
+              >
                 OPERATOR IDENTIFIER (EMAIL)
               </label>
               <input
+                id="login-email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -105,10 +109,14 @@ export const App: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-outline uppercase tracking-wider mb-1">
+              <label
+                htmlFor="login-password"
+                className="block text-outline uppercase tracking-wider mb-1"
+              >
                 ACCESS CIPHER (PASSWORD)
               </label>
               <input
+                id="login-password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -166,10 +174,16 @@ export const App: React.FC = () => {
         <Sidebar currentPage={currentPage} onSelectPage={setCurrentPage} userRole={user.role} />
 
         <main className="flex-1 p-space-md lg:p-space-lg overflow-y-auto max-w-full">
-          {currentPage === 'live-telemetry' && <LiveTelemetryScreen onNavigate={(p: any) => setCurrentPage(p)} />}
-          {currentPage === 'load-profile' && <LoadProfileScreen onNavigate={(p: any) => setCurrentPage(p)} />}
+          {currentPage === 'live-telemetry' && (
+            <LiveTelemetryScreen onNavigate={(p: any) => setCurrentPage(p)} />
+          )}
+          {currentPage === 'load-profile' && (
+            <LoadProfileScreen onNavigate={(p: any) => setCurrentPage(p)} />
+          )}
           {currentPage === 'sub-meters' && <SubMeterScreen />}
-          {currentPage === 'data-engine' && <DataEngineScreen onNavigate={(p: any) => setCurrentPage(p)} />}
+          {currentPage === 'data-engine' && (
+            <DataEngineScreen onNavigate={(p: any) => setCurrentPage(p)} />
+          )}
           {currentPage === 'substation' && <SubstationScreen />}
           {currentPage === 'query-lab' && <QueryLabPage />}
           {currentPage === 'metrics' && <ProjectMetricsPage />}

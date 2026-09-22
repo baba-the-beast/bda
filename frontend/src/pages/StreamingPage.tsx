@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Play, Pause, Square, Activity, Gauge, Radio, TrendingUp, AlertTriangle } from 'lucide-react';
+import { Play, Pause, Square, Activity, Gauge, Radio, TrendingUp } from 'lucide-react';
 import { api } from '../api';
 import { Dataset, StreamTelemetryEvent, StreamWindow } from '../types';
 
@@ -32,8 +32,9 @@ export const StreamingPage: React.FC = () => {
     try {
       const list = await api.listDatasets();
       setDatasets(list);
-      if (list.length > 0) {
-        setSelectedDataset(list[0].id);
+      const first = list[0];
+      if (first) {
+        setSelectedDataset(first.id);
       }
     } catch (e) {
       console.error(e);
@@ -131,19 +132,26 @@ export const StreamingPage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Real-Time Streaming Telemetry</h1>
+          <h1 className="text-2xl font-bold text-white tracking-tight">
+            Real-Time Streaming Telemetry
+          </h1>
           <p className="text-sm text-slate-400">
-            Simulated Historical Smart Meter Stream &bull; Apache Spark Structured Streaming &bull; Sliding Windows
+            Simulated Historical Smart Meter Stream &bull; Apache Spark Structured Streaming &bull;
+            Sliding Windows
           </p>
         </div>
 
         <div className="flex items-center space-x-2">
-          <div className={`flex items-center space-x-2 px-3 py-1.5 rounded-full text-xs font-semibold border ${
-            isConnected
-              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-              : 'bg-slate-800 text-slate-400 border-slate-700'
-          }`}>
-            <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
+          <div
+            className={`flex items-center space-x-2 px-3 py-1.5 rounded-full text-xs font-semibold border ${
+              isConnected
+                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                : 'bg-slate-800 text-slate-400 border-slate-700'
+            }`}
+          >
+            <span
+              className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`}
+            />
             <span>{isConnected ? 'SSE Live Stream Active' : 'Disconnected / Standby'}</span>
           </div>
         </div>
@@ -153,7 +161,9 @@ export const StreamingPage: React.FC = () => {
       <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Source Dataset</label>
+            <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">
+              Source Dataset
+            </label>
             <select
               value={selectedDataset}
               onChange={(e) => setSelectedDataset(e.target.value)}
@@ -228,7 +238,9 @@ export const StreamingPage: React.FC = () => {
         {/* Instantaneous Power Gauge Card */}
         <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400 uppercase">Live Instantaneous Power</span>
+            <span className="text-xs font-semibold text-slate-400 uppercase">
+              Live Instantaneous Power
+            </span>
             <Activity className="w-4 h-4 text-cyan-400" />
           </div>
 
@@ -246,11 +258,15 @@ export const StreamingPage: React.FC = () => {
             </div>
             <div className="flex justify-between">
               <span>Current Intensity:</span>
-              <span className="text-slate-200 font-mono">{currentReading?.global_intensity || 0.0} A</span>
+              <span className="text-slate-200 font-mono">
+                {currentReading?.global_intensity || 0.0} A
+              </span>
             </div>
             <div className="flex justify-between">
               <span>Timestamp:</span>
-              <span className="text-cyan-400 font-mono truncate">{currentReading?.timestamp || 'Waiting for events...'}</span>
+              <span className="text-cyan-400 font-mono truncate">
+                {currentReading?.timestamp || 'Waiting for events...'}
+              </span>
             </div>
           </div>
         </div>
@@ -258,7 +274,9 @@ export const StreamingPage: React.FC = () => {
         {/* Spark Window Aggregates Card */}
         <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400 uppercase">Spark 1-Min Window Aggregate</span>
+            <span className="text-xs font-semibold text-slate-400 uppercase">
+              Spark 1-Min Window Aggregate
+            </span>
             <Gauge className="w-4 h-4 text-emerald-400" />
           </div>
 
@@ -272,16 +290,20 @@ export const StreamingPage: React.FC = () => {
             <div className="flex items-center justify-between">
               <span className="text-sm text-slate-400">Window Min / Max:</span>
               <span className="text-sm font-semibold text-slate-300 font-mono">
-                {currentWindow ? `${currentWindow.minimum_power.toFixed(2)} / ${currentWindow.maximum_power.toFixed(2)} kW` : '--'}
+                {currentWindow
+                  ? `${currentWindow.minimum_power.toFixed(2)} / ${currentWindow.maximum_power.toFixed(2)} kW`
+                  : '--'}
               </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-slate-400">Trend Assessment:</span>
-              <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                currentWindow?.recent_trend === 'RISING'
-                  ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                  : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-              }`}>
+              <span
+                className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                  currentWindow?.recent_trend === 'RISING'
+                    ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                    : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                }`}
+              >
                 {currentWindow?.recent_trend || 'STABLE'}
               </span>
             </div>
@@ -289,14 +311,18 @@ export const StreamingPage: React.FC = () => {
 
           <div className="text-xs text-slate-400 border-t border-slate-800/80 pt-3 flex justify-between">
             <span>Window Samples:</span>
-            <span className="text-slate-200 font-mono">{currentWindow?.reading_count || 0} records</span>
+            <span className="text-slate-200 font-mono">
+              {currentWindow?.reading_count || 0} records
+            </span>
           </div>
         </div>
 
         {/* Stream Throughput & Buffer Card */}
         <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400 uppercase">Stream Throughput</span>
+            <span className="text-xs font-semibold text-slate-400 uppercase">
+              Stream Throughput
+            </span>
             <Radio className="w-4 h-4 text-purple-400" />
           </div>
 

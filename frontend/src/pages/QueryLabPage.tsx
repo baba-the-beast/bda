@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Terminal, Play, Download, Clock, Database, CheckCircle2 } from 'lucide-react';
+import { Play, CheckCircle2 } from 'lucide-react';
 import { api } from '../api';
 import { Dataset } from '../types';
 
@@ -22,8 +22,9 @@ export const QueryLabPage: React.FC = () => {
     try {
       const dsList = await api.listDatasets();
       setDatasets(dsList);
-      if (dsList.length > 0) {
-        setSelectedDataset(dsList[0].id);
+      const first = dsList[0];
+      if (first) {
+        setSelectedDataset(first.id);
       }
       const tmpls = await api.listHiveTemplates();
       setTemplates(tmpls);
@@ -80,7 +81,9 @@ export const QueryLabPage: React.FC = () => {
       <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Analytical Template</label>
+            <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">
+              Analytical Template
+            </label>
             <select
               value={selectedTemplate}
               onChange={(e) => setSelectedTemplate(e.target.value)}
@@ -95,7 +98,9 @@ export const QueryLabPage: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Result Row Limit</label>
+            <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">
+              Result Row Limit
+            </label>
             <input
               type="number"
               min="1"
@@ -108,7 +113,9 @@ export const QueryLabPage: React.FC = () => {
 
           {selectedTemplate === 'peak_power_analysis' && (
             <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Peak Threshold (kW)</label>
+              <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">
+                Peak Threshold (kW)
+              </label>
               <input
                 type="number"
                 step="0.5"
@@ -146,11 +153,18 @@ export const QueryLabPage: React.FC = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2 text-xs text-slate-400">
               <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-              <span>Query ID: <span className="font-mono text-white">{results.query_id}</span></span>
+              <span>
+                Query ID: <span className="font-mono text-white">{results.query_id}</span>
+              </span>
               <span>&bull;</span>
-              <span>Duration: <span className="font-mono text-cyan-400">{results.execution_duration_sec}s</span></span>
+              <span>
+                Duration:{' '}
+                <span className="font-mono text-cyan-400">{results.execution_duration_sec}s</span>
+              </span>
               <span>&bull;</span>
-              <span>Rows: <span className="font-semibold text-white">{results.row_count}</span></span>
+              <span>
+                Rows: <span className="font-semibold text-white">{results.row_count}</span>
+              </span>
             </div>
           </div>
 

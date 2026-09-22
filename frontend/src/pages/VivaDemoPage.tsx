@@ -1,18 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  CheckCircle2,
-  Circle,
-  Play,
-  RotateCcw,
-  HardDrive,
-  Cpu,
-  Terminal,
-  Radio,
-  Database,
-  ArrowRight,
-  ShieldCheck,
-  Zap
-} from 'lucide-react';
+import { CheckCircle2, Circle, Play, Zap } from 'lucide-react';
 import { api } from '../api';
 import { Dataset } from '../types';
 
@@ -26,9 +13,9 @@ interface Step {
 }
 
 export const VivaDemoPage: React.FC = () => {
-  const [datasets, setDatasets] = useState<Dataset[]>([]);
+  const [, setDatasets] = useState<Dataset[]>([]);
   const [selectedDatasetId, setSelectedDatasetId] = useState<string>('');
-  const [currentStep, setCurrentStep] = useState<number>(1);
+  const [, setCurrentStep] = useState<number>(1);
   const [running, setRunning] = useState<boolean>(false);
 
   const [steps, setSteps] = useState<Step[]>([
@@ -77,8 +64,9 @@ export const VivaDemoPage: React.FC = () => {
     try {
       const list = await api.listDatasets();
       setDatasets(list);
-      if (list.length > 0) {
-        setSelectedDatasetId(list[0].id);
+      const first = list[0];
+      if (first) {
+        setSelectedDatasetId(first.id);
       }
     } catch (e) {
       console.error(e);
@@ -149,9 +137,12 @@ export const VivaDemoPage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Viva &amp; Demonstration Workflow</h1>
+          <h1 className="text-2xl font-bold text-white tracking-tight">
+            Viva &amp; Demonstration Workflow
+          </h1>
           <p className="text-sm text-slate-400">
-            End-to-End Guided BDA Pipeline: Ingestion &rarr; Preprocessing &rarr; HDFS &rarr; MapReduce &rarr; Hive &rarr; Streaming &rarr; MongoDB &rarr; UI
+            End-to-End Guided BDA Pipeline: Ingestion &rarr; Preprocessing &rarr; HDFS &rarr;
+            MapReduce &rarr; Hive &rarr; Streaming &rarr; MongoDB &rarr; UI
           </p>
         </div>
       </div>
@@ -175,8 +166,8 @@ export const VivaDemoPage: React.FC = () => {
                   isDone
                     ? 'bg-slate-950/60 border-emerald-500/30'
                     : isRun
-                    ? 'bg-slate-950/80 border-cyan-500/50 ring-1 ring-cyan-500/30'
-                    : 'bg-slate-950/30 border-slate-800/80'
+                      ? 'bg-slate-950/80 border-cyan-500/50 ring-1 ring-cyan-500/30'
+                      : 'bg-slate-950/30 border-slate-800/80'
                 }`}
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -196,7 +187,9 @@ export const VivaDemoPage: React.FC = () => {
                     </div>
                     <div>
                       <div className="text-sm font-bold text-white flex items-center space-x-2">
-                        <span>Step {s.id}: {s.title}</span>
+                        <span>
+                          Step {s.id}: {s.title}
+                        </span>
                       </div>
                       <p className="text-xs text-slate-400 mt-1 max-w-2xl">{s.desc}</p>
                     </div>

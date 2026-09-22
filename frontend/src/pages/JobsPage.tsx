@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Cpu, Play, RotateCcw, XCircle, CheckCircle2, Clock, AlertTriangle } from 'lucide-react';
+import { Play, RotateCcw } from 'lucide-react';
 import { api } from '../api';
 import { AnalyticsJob, Dataset } from '../types';
 
@@ -19,8 +19,9 @@ export const JobsPage: React.FC = () => {
     try {
       const dsList = await api.listDatasets();
       setDatasets(dsList);
-      if (dsList.length > 0) {
-        setSelectedDataset(dsList[0].id);
+      const first = dsList[0];
+      if (first) {
+        setSelectedDataset(first.id);
       }
       fetchJobs();
     } catch (e) {
@@ -66,9 +67,12 @@ export const JobsPage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">MapReduce Job Orchestration</h1>
+          <h1 className="text-2xl font-bold text-white tracking-tight">
+            MapReduce Job Orchestration
+          </h1>
           <p className="text-sm text-slate-400">
-            Asynchronous Hadoop Streaming Jobs &bull; Idempotent Run Tracking &bull; Automated MongoDB Aggregation Sinks
+            Asynchronous Hadoop Streaming Jobs &bull; Idempotent Run Tracking &bull; Automated
+            MongoDB Aggregation Sinks
           </p>
         </div>
 
@@ -92,7 +96,9 @@ export const JobsPage: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 flex flex-col justify-between space-y-4">
           <div>
-            <span className="text-xs font-semibold text-cyan-400 uppercase tracking-wider">Job 1</span>
+            <span className="text-xs font-semibold text-cyan-400 uppercase tracking-wider">
+              Job 1
+            </span>
             <div className="text-base font-bold text-white mt-1">Daily Consumption</div>
             <p className="text-xs text-slate-400 mt-1">
               Date key &bull; Accumulates total kWh, average power, bounds, and submeter breakdown.
@@ -110,10 +116,13 @@ export const JobsPage: React.FC = () => {
 
         <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 flex flex-col justify-between space-y-4">
           <div>
-            <span className="text-xs font-semibold text-blue-400 uppercase tracking-wider">Job 2</span>
+            <span className="text-xs font-semibold text-blue-400 uppercase tracking-wider">
+              Job 2
+            </span>
             <div className="text-base font-bold text-white mt-1">Hourly Profile</div>
             <p className="text-xs text-slate-400 mt-1">
-              Hour-of-day key (0-23) &bull; Computes diurnal average, minimum, maximum, and total energy.
+              Hour-of-day key (0-23) &bull; Computes diurnal average, minimum, maximum, and total
+              energy.
             </p>
           </div>
           <button
@@ -128,7 +137,9 @@ export const JobsPage: React.FC = () => {
 
         <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 flex flex-col justify-between space-y-4">
           <div>
-            <span className="text-xs font-semibold text-indigo-400 uppercase tracking-wider">Job 3</span>
+            <span className="text-xs font-semibold text-indigo-400 uppercase tracking-wider">
+              Job 3
+            </span>
             <div className="text-base font-bold text-white mt-1">Monthly Trends</div>
             <p className="text-xs text-slate-400 mt-1">
               Year-Month key &bull; Evaluates seasonal consumption trends across multi-year data.
@@ -146,7 +157,9 @@ export const JobsPage: React.FC = () => {
 
         <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 flex flex-col justify-between space-y-4">
           <div>
-            <span className="text-xs font-semibold text-amber-400 uppercase tracking-wider">Job 4</span>
+            <span className="text-xs font-semibold text-amber-400 uppercase tracking-wider">
+              Job 4
+            </span>
             <div className="text-base font-bold text-white mt-1">Peak Events</div>
             <p className="text-xs text-slate-400 mt-1">
               Threshold window key &bull; Isolates peak active power spikes with appliance loads.
@@ -192,13 +205,15 @@ export const JobsPage: React.FC = () => {
                   <span className="font-semibold text-cyan-400 text-xs">{j.job_type}</span>
                 </td>
                 <td className="p-3">
-                  <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
-                    j.status === 'SUCCEEDED'
-                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                      : j.status === 'RUNNING' || j.status === 'QUEUED'
-                      ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20 animate-pulse'
-                      : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                  }`}>
+                  <span
+                    className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
+                      j.status === 'SUCCEEDED'
+                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                        : j.status === 'RUNNING' || j.status === 'QUEUED'
+                          ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20 animate-pulse'
+                          : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                    }`}
+                  >
                     {j.status}
                   </span>
                 </td>

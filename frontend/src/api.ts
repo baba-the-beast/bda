@@ -1,4 +1,13 @@
-import { User, Dataset, DataQualityReport, AnalyticsJob, DailyAggregate, HourlyAggregate, MonthlyAggregate, PeakEvent, StreamWindow } from './types';
+import {
+  User,
+  Dataset,
+  DataQualityReport,
+  AnalyticsJob,
+  DailyAggregate,
+  HourlyAggregate,
+  MonthlyAggregate,
+  PeakEvent,
+} from './types';
 
 const getApiBase = () => {
   if (import.meta.env.VITE_API_URL) {
@@ -63,10 +72,13 @@ class ApiClient {
 
   // Auth
   async login(email: string, password: string) {
-    const data = await this.request<{ access_token: string; refresh_token: string }>('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
-    });
+    const data = await this.request<{ access_token: string; refresh_token: string }>(
+      '/auth/login',
+      {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      },
+    );
     this.setToken(data.access_token);
     return data;
   }
@@ -169,7 +181,7 @@ class ApiClient {
     return this.request<any>('/stream/status');
   }
 
-  async startStream(datasetId: string, rate: number = 5) {
+  async startStream(datasetId: string, rate = 5) {
     return this.request<any>('/stream/start', {
       method: 'POST',
       body: JSON.stringify({ dataset_id: datasetId, events_per_second: rate }),
@@ -189,14 +201,18 @@ class ApiClient {
   }
 
   // Authenticated file download helper
-  async downloadFile(endpoint: string, defaultFilename: string = 'export.csv'): Promise<void> {
+  async downloadFile(endpoint: string, defaultFilename = 'export.csv'): Promise<void> {
     const headers = new Headers();
     if (this.token) {
       headers.set('Authorization', `Bearer ${this.token}`);
     }
-    const cleanPath = endpoint.startsWith('/api/v1') ? endpoint.slice(7) : endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+    const cleanPath = endpoint.startsWith('/api/v1')
+      ? endpoint.slice(7)
+      : endpoint.startsWith('/')
+        ? endpoint
+        : `/${endpoint}`;
     const url = `${API_BASE}${cleanPath}`;
-    
+
     const response = await fetch(url, { headers });
     if (!response.ok) {
       throw new Error(`Download failed: HTTP ${response.status} ${response.statusText}`);
@@ -216,7 +232,7 @@ class ApiClient {
   subscribeLiveStream(onData: (data: any) => void, onError?: (err: any) => void): EventSource {
     const tokenQuery = this.token ? `?token=${encodeURIComponent(this.token)}` : '';
     const es = new EventSource(`${API_BASE}/stream/live${tokenQuery}`);
-    
+
     const parseAndDispatch = (event: MessageEvent) => {
       try {
         const parsed = JSON.parse(event.data);
@@ -240,7 +256,7 @@ class ApiClient {
   async getDefaultDatasetId(): Promise<string | null> {
     try {
       const datasets = await this.listDatasets();
-      return datasets.length > 0 ? datasets[0].id : null;
+      return datasets[0]?.id ?? null;
     } catch {
       return null;
     }
@@ -274,14 +290,13 @@ class ApiClient {
     return this.request<User[]>('/auth/users');
   }
 
-  async getAuditLogs(limit: number = 50) {
+  async getAuditLogs(limit = 50) {
     return this.request<any[]>(`/auth/audit-logs?limit=${limit}`);
   }
 
-  async getSecurityEvents(limit: number = 50) {
+  async getSecurityEvents(limit = 50) {
     return this.request<any[]>(`/auth/security-events?limit=${limit}`);
   }
 }
 
 export const api = new ApiClient();
-

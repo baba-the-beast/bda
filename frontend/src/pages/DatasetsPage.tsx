@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { Upload, HardDrive, CheckCircle, AlertOctagon, Clock, Play, FileText, ShieldCheck } from 'lucide-react';
+import { Upload, Play, FileText, ShieldCheck } from 'lucide-react';
 import { api } from '../api';
 import { Dataset } from '../types';
 
 export const DatasetsPage: React.FC = () => {
   const [datasets, setDatasets] = useState<Dataset[]>([]);
   const [selectedDataset, setSelectedDataset] = useState<Dataset | null>(null);
-  const [localPathInput, setLocalPathInput] = useState<string>('data/household_power_consumption_sample.txt');
+  const [localPathInput, setLocalPathInput] = useState<string>(
+    'data/household_power_consumption_sample.txt',
+  );
   const [importing, setImporting] = useState<boolean>(false);
   const [preprocessing, setPreprocessing] = useState<boolean>(false);
 
@@ -18,8 +20,9 @@ export const DatasetsPage: React.FC = () => {
     try {
       const list = await api.listDatasets();
       setDatasets(list);
-      if (list.length > 0 && !selectedDataset) {
-        setSelectedDataset(list[0]);
+      const first = list[0];
+      if (first && !selectedDataset) {
+        setSelectedDataset(first);
       }
     } catch (e) {
       console.error(e);
@@ -61,9 +64,12 @@ export const DatasetsPage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Dataset Lifecycle &amp; Quality</h1>
+          <h1 className="text-2xl font-bold text-white tracking-tight">
+            Dataset Lifecycle &amp; Quality
+          </h1>
           <p className="text-sm text-slate-400">
-            Ingestion &bull; SHA-256 Checksum Validation &bull; Cleaning &bull; Data Quality Audit &bull; HDFS Staging
+            Ingestion &bull; SHA-256 Checksum Validation &bull; Cleaning &bull; Data Quality Audit
+            &bull; HDFS Staging
           </p>
         </div>
       </div>
@@ -76,7 +82,8 @@ export const DatasetsPage: React.FC = () => {
             <h3 className="text-sm font-semibold text-white">Import Energy Dataset</h3>
           </div>
           <p className="text-xs text-slate-400">
-            Staged files (e.g. official 2M UCI dataset or sample files) can be imported into HDFS raw storage.
+            Staged files (e.g. official 2M UCI dataset or sample files) can be imported into HDFS
+            raw storage.
           </p>
           <div className="space-y-3">
             <input
@@ -119,13 +126,15 @@ export const DatasetsPage: React.FC = () => {
                 </div>
 
                 <div className="flex items-center space-x-3">
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
-                    ds.status === 'PROCESSED'
-                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                      : ds.status === 'PREPROCESSING'
-                      ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20 animate-pulse'
-                      : 'bg-slate-800 text-slate-400'
-                  }`}>
+                  <span
+                    className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
+                      ds.status === 'PROCESSED'
+                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                        : ds.status === 'PREPROCESSING'
+                          ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20 animate-pulse'
+                          : 'bg-slate-800 text-slate-400'
+                    }`}
+                  >
                     {ds.status}
                   </span>
                   <span className="text-xs text-slate-400">
@@ -224,13 +233,24 @@ export const DatasetsPage: React.FC = () => {
               </div>
 
               <div className="p-4 rounded-xl bg-slate-950/40 border border-slate-800 text-xs text-slate-400 space-y-1">
-                <div>Clean HDFS Storage Path: <span className="font-mono text-cyan-400">{selectedDataset.cleaned_hdfs_path}</span></div>
-                <div>Rejected Records Isolation: <span className="font-mono text-rose-400">/user/bda/energy/rejected/{selectedDataset.id}/rejected_records.log</span></div>
+                <div>
+                  Clean HDFS Storage Path:{' '}
+                  <span className="font-mono text-cyan-400">
+                    {selectedDataset.cleaned_hdfs_path}
+                  </span>
+                </div>
+                <div>
+                  Rejected Records Isolation:{' '}
+                  <span className="font-mono text-rose-400">
+                    /user/bda/energy/rejected/{selectedDataset.id}/rejected_records.log
+                  </span>
+                </div>
               </div>
             </div>
           ) : (
             <div className="p-6 rounded-xl bg-slate-950/40 border border-slate-800 text-center text-xs text-slate-400">
-              This dataset is staged in HDFS raw storage. Click "Run Data Preprocessing" to validate schema, isolate missing '?' records, and generate the cleaned analytical time series.
+              This dataset is staged in HDFS raw storage. Click "Run Data Preprocessing" to validate
+              schema, isolate missing '?' records, and generate the cleaned analytical time series.
             </div>
           )}
         </div>

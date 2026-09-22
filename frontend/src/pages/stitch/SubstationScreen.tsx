@@ -4,7 +4,7 @@ import { api } from '../../api';
 export const SubstationScreen: React.FC = () => {
   const [datasets, setDatasets] = useState<any[]>([]);
   const [selectedDataset, setSelectedDataset] = useState<string>('');
-  const [loading, setLoading] = useState<boolean>(true);
+  const [, setLoading] = useState<boolean>(true);
   const [voltageBands, setVoltageBands] = useState<any[]>([
     { band: 'Low Voltage (<235V)', count: '14,280', avg_voltage: 232.4, avg_intensity: 8.4, avg_active_power: 1.94 },
     { band: 'Nominal (235V - 245V)', count: '1,894,200', avg_voltage: 240.8, avg_intensity: 4.6, avg_active_power: 1.09 },
@@ -25,7 +25,7 @@ export const SubstationScreen: React.FC = () => {
     try {
       const list = await api.getDatasets();
       setDatasets(list);
-      const activeId = list.length > 0 ? list[0].id : '';
+      const activeId = list[0]?.id ?? '';
       setSelectedDataset(activeId);
       if (activeId) {
         await fetchCorrelationData(activeId);

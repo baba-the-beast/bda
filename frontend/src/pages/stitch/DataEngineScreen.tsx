@@ -5,7 +5,7 @@ interface DataEngineScreenProps {
   onNavigate?: (pageId: string) => void;
 }
 
-export const DataEngineScreen: React.FC<DataEngineScreenProps> = ({ onNavigate }) => {
+export const DataEngineScreen: React.FC<DataEngineScreenProps> = () => {
   const [jobs, setJobs] = useState<any[]>([]);
   const [datasets, setDatasets] = useState<any[]>([]);
   const [submitting, setSubmitting] = useState<string | null>(null);
