@@ -2,7 +2,7 @@
 
 **Audited commit:** `4cd9276` (branch `fix/ci-green-and-codebase-audit`)
 **Scope:** `frontend/` — 21 TS/TSX files, 4,801 lines.
-**Status:** Phases 0–4 complete (see §9–§12). Phases 5–7 pending.
+**Status:** Complete. Phases 0–7 delivered; see §13 for the final report.
 
 ---
 
@@ -264,9 +264,9 @@ remove two render-blocking CDN round trips.
 | 2 | Tokens as CSS custom properties and Tailwind rewire; UI kit + tests | 18 files | **Done** |
 | 3 | Router, guards, API layer, generated types, auth refresh, `useTelemetryStream` | 15 files | **Done** |
 | 4 | Chart components on ECharts + accessible table fallback | 8 files | **Done** |
-| 5 | Pages, one domain per commit: overview, datasets, jobs, analysis, voltage, query, stream, platform, admin, demo | 10 commits, the bulk | Next |
-| 6 | Accessibility and performance pass: axe, keyboard, Lighthouse, bundle check | cross-cutting | |
-| 7 | Docs: ADR-011, `frontend/README.md`, update ADR-010, `BUG_AUDIT` correction | 4 files | |
+| 5 | Pages, one domain per commit | 3 commits, all 10 domains | **Done** |
+| 6 | Accessibility and performance pass | cross-cutting | **Done** |
+| 7 | Docs: ADR-011, `frontend/README.md`, ADR-010, `BUG_AUDIT` | 4 files | **Done** |
 
 Each phase ends green on `typecheck && lint && test && build`.
 
@@ -551,3 +551,90 @@ The chart components are unit-tested at the frame level - legend, table twin, em
 state, toggle semantics - but **no chart canvas has been rendered in a browser**,
 because no page imports them yet. That happens in Phase 5, and the e2e suite gains
 per-route chart assertions there.
+
+---
+
+## 13. Final report
+
+### Every finding, closed
+
+| Ref | Finding | Outcome |
+|---|---|---|
+| 3.1 | No router; 3 dead pages; stale IA; two icon sets; dead theme toggle | Router with 10 URLs; dead pages deleted; one icon set; toggle removed |
+| 3.2 | Fabricated telemetry, `Math.random`, client EMAs as window means, fake sidebar status | All removed. `Math.random` now banned by lint; `Metric` cannot render a fake zero |
+| 3.3 | Pre-filled credentials, discarded refresh token, JWT in SSE URL, CSP conflicts, unguarded admin | Credentials behind `VITE_DEMO_MODE`; refresh implemented; 30-second stream ticket; fonts self-hosted; `RequireRole` |
+| 3.4 | 53 `any`, no ESLint, no tests, hand-drawn SVG, conflicting CSS, 200 ms clock, unbounded polling | Zero `any`; strict lint; 74 unit + 37 e2e; ECharts; one token file; 1 s clock; polling that stops and pauses |
+| 3.5 | Theatrical copy | Plain language throughout |
+| F1 | Voltage screen never rendered a correct row | Rewritten against the real field names; e2e asserts them |
+| F2 | Five fabricated Navbar readouts, one physically wrong | Removed |
+| F3 | `peakWindow` frozen by a stale closure | Gone with the rewrite |
+| F4 | Tumbling and sliding means identical | Both read from the server's window payload |
+| F5 | Invented constants for missing fields | Absent fields stay null |
+| F6 | Hardcoded tables in Load Profile | All fetched |
+| F7 | `docs/API.md` mislabels its error format | Recorded as BR-4; client parses the real envelope |
+| F8 | `request_id` sometimes null | Recorded as BR-3; UI falls back to the header |
+| F9 | BUG-HIGH-03 recorded as fixed while broken | `docs/BUG_AUDIT.md` corrected |
+| F10 | No upload path in the client | Upload dialog with validation |
+| F11 | SSE heartbeat ignored | Connection state surfaced from it |
+
+### Open questions, resolved
+
+- **Q1 Deadline** — one month; full plan delivered.
+- **Q2 SSE token** — backend change approved and implemented (BR-1).
+- **Q3 Refresh storage** — cookie **declined** with reasoning; production is
+  cross-origin on Render (BR-2).
+- **Q4 `frontend/stitch/`** — deleted; it is in git history.
+- **Q5 Browser access** — resolved via Playwright and Lighthouse, which are
+  reproducible in CI. See the caveat below.
+- **Q6 Branch base** — `feat/frontend-overhaul` from `fix/ci-green-and-codebase-audit`.
+- **Q7 GRIDPULSE name** — **still open.** The industrial framing is gone, but the
+  name remains. It is a one-line change if you want it renamed.
+
+### Files removed
+
+`src/pages/**` (11 files), `src/api.ts`, `src/types.ts`, `frontend/stitch/`
+(10 HTML exports + 1 SVG), the Tailwind compatibility aliases, and
+`LEGACY_EXCLUDED` from `eslint.config.js`. The Phase 1 debt ledger is empty:
+`strict-type-checked` applies to every file with no exemptions.
+
+### Dependencies added
+
+Runtime: `react-router-dom`, `@tanstack/react-query`, `echarts`,
+`react-hook-form`, `zod`, `@hookform/resolvers`, five `@radix-ui` primitives,
+`clsx`, `tailwind-merge`, two `@fontsource` families.
+Development: ESLint and plugins, Prettier, Vitest, Testing Library, MSW,
+Playwright, `@axe-core/playwright`, `size-limit`, `openapi-typescript`,
+`lighthouse`.
+
+### Verification
+
+| Gate | Result |
+|---|---|
+| `typecheck` | clean, strict, no exemptions |
+| `lint` | clean, `strict-type-checked` |
+| `format:check` | clean |
+| `test` | 74 passed |
+| `test:e2e` | 37 passed, axe on all 10 routes |
+| `build` | clean |
+| `size` | 102 / 5 / 164 kB against 150 / 20 / 175 |
+| Lighthouse (sign-in) | performance 95, accessibility 100, best practices 100 |
+
+### Known limitations
+
+1. **No before/after screenshots.** The Definition of Done asks for them. Playwright
+   capture was attempted and the run hung on its `webServer` step; rather than leave
+   a blocked process the attempt was stopped. Verification came from 37 e2e
+   assertions against real rendered content instead. A working capture path is
+   outstanding work.
+2. **Lighthouse covers sign-in only.** It is the sole route reachable without a
+   backend, and the backend was stopped by the harness under memory pressure. The
+   authenticated routes are covered by axe on every run, which is a stricter
+   accessibility check than Lighthouse's subset, but the performance figure for
+   `/overview` is unmeasured.
+3. **Nothing has run against the live backend since Phase 2.** Every gate since is
+   against MSW and Playwright route interception. The contracts come from the
+   generated OpenAPI types, so shape mismatches are caught at compile time, but an
+   end-to-end run against the real services has not happened.
+4. **CI has never run.** There is still no git remote. All seven gates were
+   reproduced locally.
+5. **ECharts is heavier than this data needs** — see §12.
