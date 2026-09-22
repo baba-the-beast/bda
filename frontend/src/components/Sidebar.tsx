@@ -1,4 +1,20 @@
-import React from 'react';
+import {
+  Activity,
+  Database,
+  FileCheck2,
+  Gauge,
+  LayoutDashboard,
+  type LucideIcon,
+  PlayCircle,
+  Radio,
+  ShieldCheck,
+  Terminal,
+  Zap,
+} from 'lucide-react';
+
+import { cn } from '../lib/cn';
+
+import { Badge } from './ui/Status';
 
 export type PageId =
   | 'live-telemetry'
@@ -13,125 +29,103 @@ export type PageId =
   | 'admin'
   | 'viva-demo';
 
-interface SidebarProps {
-  currentPage: PageId;
-  onSelectPage: (page: PageId) => void;
-  userRole?: string;
+interface NavItem {
+  id: PageId;
+  label: string;
+  Icon: LucideIcon;
+  badge?: string;
+  adminOnly?: boolean;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ currentPage, onSelectPage, userRole }) => {
-  const stitchNavItems = [
-    { id: 'live-telemetry' as PageId, label: 'Live Telemetry', icon: 'monitoring', badge: 'LIVE' },
-    { id: 'load-profile' as PageId, label: 'Load Profile', icon: 'ssid_chart', badge: null },
-    { id: 'sub-meters' as PageId, label: 'Sub-Meters', icon: 'speed', badge: null },
-    { id: 'data-engine' as PageId, label: 'Pipelines & Batch', icon: 'schema', badge: 'HDFS' },
-    {
-      id: 'substation' as PageId,
-      label: 'Transformer Substation',
-      icon: 'electric_bolt',
-      badge: null,
-    },
-  ];
+/**
+ * Navigation grouped by pipeline stage, so the path from raw data to live
+ * telemetry is legible. Section names describe the data, not an imagined
+ * control room.
+ */
+const SECTIONS: { heading: string; items: NavItem[] }[] = [
+  {
+    heading: 'Data pipeline',
+    items: [
+      { id: 'datasets', label: 'Datasets & quality', Icon: Database },
+      { id: 'data-engine', label: 'Pipelines & batch', Icon: LayoutDashboard, badge: 'HDFS' },
+      { id: 'jobs', label: 'MapReduce jobs', Icon: Activity },
+    ],
+  },
+  {
+    heading: 'Analysis',
+    items: [
+      { id: 'load-profile', label: 'Load profile', Icon: Gauge },
+      { id: 'sub-meters', label: 'Sub-meters', Icon: Zap },
+      { id: 'substation', label: 'Voltage & power', Icon: Zap },
+      { id: 'query-lab', label: 'Hive query lab', Icon: Terminal },
+    ],
+  },
+  {
+    heading: 'Live & platform',
+    items: [
+      { id: 'live-telemetry', label: 'Live stream', Icon: Radio, badge: 'SSE' },
+      { id: 'metrics', label: 'Platform metrics', Icon: FileCheck2 },
+      { id: 'viva-demo', label: 'Guided demo', Icon: PlayCircle },
+      { id: 'admin', label: 'Administration', Icon: ShieldCheck, adminOnly: true },
+    ],
+  },
+];
 
-  const analyticalNavItems = [
-    { id: 'query-lab' as PageId, label: 'Hive Query Lab', icon: 'terminal' },
-    { id: 'metrics' as PageId, label: 'Project Metrics', icon: 'verified' },
-    { id: 'datasets' as PageId, label: 'Datasets & Quality', icon: 'database' },
-    { id: 'jobs' as PageId, label: 'MapReduce Jobs', icon: 'memory' },
-    { id: 'viva-demo' as PageId, label: 'Viva / Demo Mode', icon: 'play_circle' },
-  ];
+export interface SidebarProps {
+  currentPage: PageId;
+  onSelectPage: (page: PageId) => void;
+  userRole?: string | undefined;
+}
 
-  if (userRole === 'ADMIN') {
-    analyticalNavItems.push({
-      id: 'admin' as PageId,
-      label: 'Administration',
-      icon: 'admin_panel_settings',
-    });
-  }
-
+export function Sidebar({ currentPage, onSelectPage, userRole }: SidebarProps) {
   return (
-    <aside className="w-64 bg-surface-container-lowest border-r border-outline-variant flex flex-col justify-between shrink-0 font-sans z-40 select-none">
-      <div className="flex flex-col">
-        {/* Section 1: Operational Subsystems (Stitch Command Room) */}
-        <div className="px-space-md py-space-xs border-b border-outline-variant bg-surface-container-low font-mono">
-          <span className="text-[10px] font-bold text-outline uppercase tracking-wider">
-            Operational Subsystems
-          </span>
-        </div>
+    <nav
+      aria-label="Sections"
+      className="flex w-56 shrink-0 flex-col gap-4 overflow-y-auto border-r border-border bg-surface py-3"
+    >
+      {SECTIONS.map((section) => {
+        const items = section.items.filter(
+          (item) => item.adminOnly !== true || userRole === 'ADMIN',
+        );
+        if (items.length === 0) return null;
 
-        <nav className="p-space-xs space-y-0.5">
-          {stitchNavItems.map((item) => {
-            const isActive = currentPage === item.id;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => onSelectPage(item.id)}
-                className={`w-full flex items-center justify-between px-space-md py-2 text-xs transition-colors font-mono ${
-                  isActive
-                    ? 'bg-primary-container text-on-primary-container font-semibold'
-                    : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
-                }`}
-              >
-                <div className="flex items-center gap-space-sm">
-                  <span className="material-symbols-outlined text-[18px]">{item.icon}</span>
-                  <span>{item.label}</span>
-                </div>
-                {item.badge && (
-                  <span
-                    className={`px-1 py-0.2 text-[9px] font-bold ${
-                      isActive
-                        ? 'bg-black/30 text-white'
-                        : 'bg-primary/20 text-primary border border-primary/40'
-                    }`}
-                  >
-                    {item.badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </nav>
+        return (
+          <div key={section.heading} className="flex flex-col gap-0.5">
+            <h2 className="px-3 pb-1 text-2xs font-medium uppercase tracking-wide text-text-subtle">
+              {section.heading}
+            </h2>
 
-        {/* Section 2: Platform Computing & Analytical Engines */}
-        <div className="px-space-md py-space-xs border-y border-outline-variant bg-surface-container-low font-mono mt-space-sm">
-          <span className="text-[10px] font-bold text-outline uppercase tracking-wider">
-            Big Data Platform Tools
-          </span>
-        </div>
-
-        <nav className="p-space-xs space-y-0.5">
-          {analyticalNavItems.map((item) => {
-            const isActive = currentPage === item.id;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => onSelectPage(item.id)}
-                className={`w-full flex items-center gap-space-sm px-space-md py-2 text-xs transition-colors font-mono ${
-                  isActive
-                    ? 'bg-primary-container text-on-primary-container font-semibold'
-                    : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
-                }`}
-              >
-                <span className="material-symbols-outlined text-[18px]">{item.icon}</span>
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
-        </nav>
-      </div>
-
-      {/* Footer SCADA Metadata */}
-      <div className="p-space-md border-t border-outline-variant bg-surface-container-low font-mono text-[11px]">
-        <div className="flex items-center justify-between text-outline">
-          <span>CONSOLE PROTOCOL</span>
-          <span className="text-primary font-bold">IEC 61850</span>
-        </div>
-        <div className="mt-1 text-[10px] text-on-surface-variant truncate">
-          BUS A/B VOLT BALANCED &bull; CLUSTER OK
-        </div>
-      </div>
-    </aside>
+            {items.map(({ id, label, Icon, badge }) => {
+              const active = currentPage === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  // Announces the current section rather than leaving the
+                  // active state to colour alone.
+                  aria-current={active ? 'page' : undefined}
+                  onClick={() => {
+                    onSelectPage(id);
+                  }}
+                  className={cn(
+                    'flex items-center gap-2 px-3 py-1.5 text-left text-xs',
+                    'transition-colors duration-base',
+                    // A left bar marks the active item, visible without colour.
+                    'border-l-2',
+                    active
+                      ? 'border-accent bg-accent/10 font-medium text-text'
+                      : 'border-transparent text-text-muted hover:bg-surface-raised hover:text-text',
+                  )}
+                >
+                  <Icon aria-hidden className="size-4 shrink-0" />
+                  <span className="truncate">{label}</span>
+                  {badge !== undefined && <Badge className="ml-auto">{badge}</Badge>}
+                </button>
+              );
+            })}
+          </div>
+        );
+      })}
+    </nav>
   );
-};
+}

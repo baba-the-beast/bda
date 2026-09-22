@@ -168,7 +168,7 @@ export const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background text-on-surface flex flex-col font-sans">
-      <Navbar user={user} onLogout={handleLogout} isDark={true} onToggleTheme={() => {}} />
+      <Navbar user={user} onLogout={handleLogout} />
 
       <div className="flex-1 flex overflow-hidden">
         <Sidebar currentPage={currentPage} onSelectPage={setCurrentPage} userRole={user.role} />

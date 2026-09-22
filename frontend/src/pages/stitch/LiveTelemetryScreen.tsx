@@ -1,3 +1,4 @@
+import { AlertTriangle, Play, Square, Terminal } from 'lucide-react';
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../../api';
 
@@ -203,9 +204,11 @@ export const LiveTelemetryScreen: React.FC<LiveTelemetryScreenProps> = () => {
                 : 'bg-primary hover:bg-primary-fixed-dim text-on-primary'
             }`}
           >
-            <span className="material-symbols-outlined text-[16px]">
-              {isStreaming ? 'stop' : 'play_arrow'}
-            </span>
+            {isStreaming ? (
+              <Square aria-hidden className="size-[16px]" />
+            ) : (
+              <Play aria-hidden className="size-[16px]" />
+            )}
             <span>{isStreaming ? 'STOP STREAM' : 'START STREAM REPLAYER'}</span>
           </button>
         </div>
@@ -215,7 +218,7 @@ export const LiveTelemetryScreen: React.FC<LiveTelemetryScreenProps> = () => {
       {anomalyAlert && (
         <div className="w-full bg-error-container border border-error p-space-md flex items-center justify-between animate-bounce">
           <div className="flex items-center gap-2 font-mono text-xs text-on-error-container font-bold">
-            <span className="material-symbols-outlined text-error text-[20px]">warning</span>
+            <AlertTriangle aria-hidden className="text-critical size-[20px]" />
             <span>CRITICAL POWER SURGE DETECTED: LOAD EXCEEDS 5.0 kW THRESHOLD</span>
           </div>
           <span className="font-mono text-xs text-on-error-container">PEAK SINK: CLIMATE / KITCHEN CIRCUIT</span>
@@ -409,7 +412,7 @@ export const LiveTelemetryScreen: React.FC<LiveTelemetryScreenProps> = () => {
       <div className="w-full bg-surface-container-low border border-outline-variant p-space-md">
         <div className="flex items-center justify-between pb-space-xs border-b border-outline-variant mb-space-md">
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary text-[18px]">terminal</span>
+            <Terminal aria-hidden className="text-accent size-[18px]" />
             <span className="font-mono text-sm font-semibold uppercase text-on-surface">
               High-Frequency Live Telemetry Event Trace
             </span>

@@ -1,3 +1,4 @@
+import { Calendar, Download, TrendingUp, Zap } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api';
 
@@ -94,7 +95,7 @@ export const LoadProfileScreen: React.FC<LoadProfileScreenProps> = ({ onNavigate
           </div>
 
           <div className="flex items-center gap-space-xs bg-surface-container-lowest px-space-md py-space-xs border border-outline-variant">
-            <span className="material-symbols-outlined text-outline text-[16px]">calendar_today</span>
+            <Calendar aria-hidden className="text-text-subtle size-[16px]" />
             <span className="font-mono text-xs text-on-surface font-medium">2006-12-16 TO 2010-11-26</span>
             <span className="font-mono text-outline text-[10px] uppercase">(47 Months Archive)</span>
           </div>
@@ -118,7 +119,7 @@ export const LoadProfileScreen: React.FC<LoadProfileScreenProps> = ({ onNavigate
             disabled={exporting}
             className="flex items-center gap-space-xs bg-surface-container hover:bg-surface-container-high border border-outline-variant px-space-md py-space-xs text-on-surface transition-colors font-mono text-xs font-semibold"
           >
-            <span className="material-symbols-outlined text-[16px]">download</span>
+            <Download aria-hidden className="size-[16px]" />
             <span>{exporting ? 'EXPORTING...' : 'RAW CSV EXPORT'}</span>
           </button>
 
@@ -127,7 +128,7 @@ export const LoadProfileScreen: React.FC<LoadProfileScreenProps> = ({ onNavigate
             onClick={() => setDrModalOpen(true)}
             className="flex items-center gap-space-xs bg-primary hover:bg-primary-fixed-dim text-on-primary px-space-md py-space-xs font-mono text-xs font-semibold transition-colors"
           >
-            <span className="material-symbols-outlined text-[16px]">bolt</span>
+            <Zap aria-hidden className="size-[16px]" />
             <span>DR DISPATCH</span>
           </button>
         </div>
@@ -147,7 +148,7 @@ export const LoadProfileScreen: React.FC<LoadProfileScreenProps> = ({ onNavigate
           </div>
           <div className="flex items-center justify-between font-mono text-[11px] text-on-surface-variant">
             <span className="flex items-center gap-1 text-primary">
-              <span className="material-symbols-outlined text-[14px]">trending_up</span>
+              <TrendingUp aria-hidden className="size-[14px]" />
               +1.2% Diurnal Load
             </span>
             <span className="text-outline">{(totalKwh).toLocaleString()} kWh</span>
@@ -420,7 +421,7 @@ export const LoadProfileScreen: React.FC<LoadProfileScreenProps> = ({ onNavigate
           <div className="w-full max-w-md bg-surface-container-low border border-outline-variant p-space-lg shadow-2xl space-y-space-md">
             <div className="flex items-center justify-between pb-space-sm border-b border-outline-variant">
               <span className="font-mono text-sm font-bold uppercase text-on-surface flex items-center gap-2">
-                <span className="material-symbols-outlined text-primary text-[18px]">bolt</span>
+                <Zap aria-hidden className="text-accent size-[18px]" />
                 Demand Response Dispatch Command
               </span>
               <button

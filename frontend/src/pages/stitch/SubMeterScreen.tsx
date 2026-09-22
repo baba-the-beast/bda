@@ -1,3 +1,4 @@
+import { FileDown, Gauge, SlidersHorizontal } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api';
 
@@ -56,7 +57,7 @@ export const SubMeterScreen: React.FC = () => {
       <div className="w-full bg-surface-container-low p-space-md border border-outline-variant flex flex-wrap items-center justify-between gap-space-md shadow-sm">
         <div>
           <h2 className="font-mono text-base font-bold uppercase tracking-wide text-on-surface flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary text-[20px]">speed</span>
+            <Gauge aria-hidden className="text-accent size-[20px]" />
             Sub-Meter Disaggregation & Circuit Analytics
           </h2>
           <p className="font-sans text-xs text-on-surface-variant">
@@ -170,7 +171,7 @@ export const SubMeterScreen: React.FC = () => {
             onClick={handleRecalibrate}
             className="h-7 px-space-md bg-surface-container hover:bg-surface-bright text-on-surface border border-outline-variant flex items-center gap-1 transition-colors"
           >
-            <span className="material-symbols-outlined text-[14px] text-primary">tune</span>
+            <SlidersHorizontal aria-hidden className="size-[14px] text-accent" />
             <span>RECALIBRATE CTs</span>
           </button>
           <button
@@ -178,7 +179,7 @@ export const SubMeterScreen: React.FC = () => {
             onClick={() => alert('Harmonics spectral analysis exported to CSV.')}
             className="h-7 px-space-md bg-surface-container hover:bg-surface-bright text-on-surface border border-outline-variant flex items-center gap-1 transition-colors"
           >
-            <span className="material-symbols-outlined text-[14px] text-secondary">file_download</span>
+            <FileDown aria-hidden className="size-[14px] text-info" />
             <span>EXPORT HARMONICS CSV</span>
           </button>
         </div>

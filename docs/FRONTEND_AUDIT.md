@@ -2,7 +2,7 @@
 
 **Audited commit:** `4cd9276` (branch `fix/ci-green-and-codebase-audit`)
 **Scope:** `frontend/` — 21 TS/TSX files, 4,801 lines.
-**Status:** Phase 0 complete. Phase 1 complete (see §9). Phases 2–7 pending.
+**Status:** Phases 0–2 complete (see §9, §10). Phases 3–7 pending.
 
 ---
 
@@ -261,8 +261,8 @@ remove two render-blocking CDN round trips.
 | Phase | Content | Size | Status |
 |---|---|---|---|
 | 1 | Tooling: ESLint flat config, Prettier, strict tsconfig, Vitest, Playwright, MSW, size-limit, CI job | ~12 files | **Done** |
-| 2 | Tokens as CSS custom properties and Tailwind rewire; UI kit (14 components) + tests | ~30 new files | Next |
-| 3 | Router, `RequireAuth`/`RequireRole`, API layer, generated types, auth refresh, `useTelemetryStream` | ~15 files; replaces `api.ts` | |
+| 2 | Tokens as CSS custom properties and Tailwind rewire; UI kit + tests | 18 files | **Done** |
+| 3 | Router, `RequireAuth`/`RequireRole`, API layer, generated types, auth refresh, `useTelemetryStream` | ~15 files; replaces `api.ts` | Next |
 | 4 | Chart components on ECharts + accessible table fallback | ~6 files | |
 | 5 | Pages, one domain per commit: overview, datasets, jobs, analysis, voltage, query, stream, platform, admin, demo | 10 commits, the bulk | |
 | 6 | Accessibility and performance pass: axe, keyboard, Lighthouse, bundle check | cross-cutting | |
@@ -362,3 +362,89 @@ open each route, start and stop the stream).
 The sign-in card's spacing scale tops out at `1rem` (`tailwind.config.js:64-72`), so labels
 sit flush against the content above them. Phase 2's token work should introduce a real type
 and spacing scale rather than the five-step `space-*` ramp in use now.
+
+---
+
+## 10. Phase 2 status - complete
+
+**Gates, all green:** `typecheck`, `lint`, `format:check`, `test` (40 unit, up from 6),
+`build`, `size`, `test:e2e` (5 including axe). Verified visually in Chrome against the
+production build.
+
+### What landed
+
+**Token layer.** `src/styles/tokens.css` holds every colour, space, radius, type step,
+shadow, z-index and duration as a CSS custom property. `tailwind.config.js` reads those
+rather than carrying a parallel palette. Colours are RGB channel triplets so Tailwind's
+opacity modifiers still work.
+
+Text contrast against `--color-surface`: body 15.8:1, muted 7.6:1, subtle 4.9:1 - all above
+the 4.5:1 AA threshold. The status palette separates on blue-yellow as well as red-green, and
+`StatusPill` always pairs colour with an icon and a screen-reader-only status word.
+
+`prefers-reduced-motion` is handled once, in the token file, rather than per component.
+
+**UI kit** in `src/components/ui/`: Button, Field + Input, Select, Panel + PanelHeader +
+PanelBody, Badge, StatusPill, Metric, Skeleton, SkeletonText, EmptyState, ErrorState, Table,
+Dialog, Tabs, Toast + useToast. Radix underpins Select, Dialog, Tabs and Toast, so focus
+traps, roving tabindex, typeahead and the listbox/dialog roles come from the primitive.
+
+Two components encode the data-honesty rule structurally rather than by convention:
+
+- `Metric` takes `value: string | null` and renders "Not available" for null. There is no
+  path that displays a zero or a placeholder in place of missing data.
+- `PanelHeader` takes `source` and `asOf` and renders an `as of` `<time>`, so provenance is
+  part of the container rather than something each page remembers.
+
+**Navbar and Sidebar rewritten**, and both have left the legacy ledger. The Navbar's five
+fabricated readouts (F2) are gone - including the 60.02 Hz that was wrong for a European
+dataset - and its clock ticks once a second instead of five times. The Sidebar's fake
+`IEC 61850` / `BUS A/B VOLT BALANCED` footer is gone, nav is grouped by pipeline stage, and
+the active item carries `aria-current="page"` plus a left bar so it does not rely on colour.
+
+**One icon system.** All 22 Material Symbols usages across the five legacy screens were
+swapped for lucide equivalents, and the webfont is gone.
+
+**No CDN requests.** All three font links are removed from `index.html`; Inter and JetBrains
+Mono are bundled from `@fontsource` using latin-only subsets. The app now satisfies
+`default-src 'self'` without a CSP exception. The duplicate favicon is gone too.
+
+### Decisions worth recording
+
+1. **Self-hosting Material Symbols was tried and reversed.** The `material-symbols` package
+   ships a 4 MB variable font, which the build dutifully emitted. Rather than ship that or
+   keep the CDN link, the 22 usages were converted to lucide - finishing the single-icon-set
+   goal in Phase 2 instead of Phase 5.
+
+2. **@fontsource's default imports pull every subset** (cyrillic, greek, vietnamese,
+   latin-ext), which pushed CSS to 80 kB. Latin-only imports bring it to 38.8 kB raw /
+   7.2 kB brotli.
+
+3. **`tsconfig` target moved ES2020 to ES2022**, needed for `Array.prototype.at` and
+   appropriate for a Vite app in 2026.
+
+4. **The legacy palette survives as documented aliases.** Renaming every token would have
+   left the pre-overhaul screens unstyled through Phases 3-4. `tailwind.config.js` carries a
+   clearly marked compatibility block mapping the old Material-derived names and the old
+   `space-*` ramp onto the new tokens. **It is deleted with `src/pages/**` in Phase 5.**
+
+### Legacy ledger
+
+| Path | Removed in | Status |
+|---|---|---|
+| `src/components/Navbar.tsx` | Phase 2 | **Cleared** |
+| `src/components/Sidebar.tsx` | Phase 2 | **Cleared** |
+| `src/api.ts` | Phase 3 | Outstanding |
+| `src/App.tsx` | Phase 3 | Outstanding |
+| `src/pages/**` | Phase 5 | Outstanding |
+| Tailwind compatibility aliases | Phase 5 | Outstanding |
+
+### Budget
+
+| Budget | Limit (brotli) | Phase 1 | Phase 2 |
+|---|---|---|---|
+| Initial route js | 150 kB | 60.4 kB | 70.8 kB |
+| Styles | 20 kB | 5.2 kB | 7.2 kB |
+
+Radix and lucide account for the 10 kB of JS growth. Still less than half the budget, before
+any route splitting exists to spend it.

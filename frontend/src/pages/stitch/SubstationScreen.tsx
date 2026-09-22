@@ -1,3 +1,4 @@
+import { RefreshCw, Table2, Zap } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api';
 
@@ -66,7 +67,7 @@ export const SubstationScreen: React.FC = () => {
       <div className="w-full bg-surface-container-low p-space-md border border-outline-variant flex flex-wrap items-center justify-between gap-space-md shadow-sm">
         <div>
           <h2 className="font-mono text-base font-bold uppercase tracking-wide text-on-surface flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary text-[20px]">electric_bolt</span>
+            <Zap aria-hidden className="text-accent size-[20px]" />
             Household Voltage &amp; Power Analysis
           </h2>
           <p className="font-sans text-xs text-on-surface-variant">
@@ -92,7 +93,7 @@ export const SubstationScreen: React.FC = () => {
             onClick={() => selectedDataset && fetchCorrelationData(selectedDataset)}
             className="h-8 px-space-md bg-surface-container hover:bg-surface-high text-on-surface border border-outline-variant flex items-center gap-1.5 transition-colors font-bold"
           >
-            <span className="material-symbols-outlined text-[16px]">refresh</span>
+            <RefreshCw aria-hidden className="size-[16px]" />
             <span>RE-RUN</span>
           </button>
         </div>
@@ -261,7 +262,7 @@ export const SubstationScreen: React.FC = () => {
       <div className="w-full bg-surface-container-low p-space-md border border-outline-variant shadow-sm font-mono">
         <div className="flex items-center justify-between mb-3 border-b border-outline-variant pb-2">
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary text-[18px]">table_chart</span>
+            <Table2 aria-hidden className="text-accent size-[18px]" />
             <span className="text-xs uppercase font-bold text-on-surface">
               Voltage &amp; Current Intensity Correlation Matrix (From Hive Cleaned Model)
             </span>

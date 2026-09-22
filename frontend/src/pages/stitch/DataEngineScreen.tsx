@@ -1,3 +1,4 @@
+import { ArrowUpDown, BadgeCheck, Cpu, Database, HardDrive, RefreshCw, Server, Workflow } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api';
 
@@ -51,7 +52,7 @@ export const DataEngineScreen: React.FC<DataEngineScreenProps> = () => {
       <div className="w-full bg-surface-container-low p-space-md border border-outline-variant flex flex-wrap items-center justify-between gap-space-md shadow-sm">
         <div>
           <h2 className="font-mono text-base font-bold uppercase tracking-wide text-on-surface flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary text-[20px]">schema</span>
+            <Workflow aria-hidden className="text-accent size-[20px]" />
             Data Engine & Batch Processing Status
           </h2>
           <p className="font-sans text-xs text-on-surface-variant">
@@ -65,7 +66,7 @@ export const DataEngineScreen: React.FC<DataEngineScreenProps> = () => {
             onClick={loadData}
             className="h-7 px-space-md bg-surface-container hover:bg-surface-high border border-outline-variant text-on-surface flex items-center gap-1 transition-colors"
           >
-            <span className="material-symbols-outlined text-[14px]">refresh</span>
+            <RefreshCw aria-hidden className="size-[14px]" />
             <span>REFRESH</span>
           </button>
         </div>
@@ -82,7 +83,7 @@ export const DataEngineScreen: React.FC<DataEngineScreenProps> = () => {
         <div className="bg-surface-container-low p-space-sm border border-outline-variant flex flex-col justify-between">
           <div className="flex items-center justify-between text-[11px] text-outline">
             <span>HDFS STORAGE</span>
-            <span className="material-symbols-outlined text-[14px] text-primary">hard_drive</span>
+            <HardDrive aria-hidden className="size-[14px] text-accent" />
           </div>
           <div className="my-1">
             <span className="text-xl font-bold text-on-surface">132.9</span>
@@ -94,7 +95,7 @@ export const DataEngineScreen: React.FC<DataEngineScreenProps> = () => {
         <div className="bg-surface-container-low p-space-sm border border-outline-variant flex flex-col justify-between">
           <div className="flex items-center justify-between text-[11px] text-outline">
             <span>YARN vCPUs</span>
-            <span className="material-symbols-outlined text-[14px] text-secondary">memory</span>
+            <Cpu aria-hidden className="size-[14px] text-info" />
           </div>
           <div className="my-1">
             <span className="text-xl font-bold text-on-surface">16</span>
@@ -106,7 +107,7 @@ export const DataEngineScreen: React.FC<DataEngineScreenProps> = () => {
         <div className="bg-surface-container-low p-space-sm border border-outline-variant flex flex-col justify-between">
           <div className="flex items-center justify-between text-[11px] text-outline">
             <span>CLUSTER RAM</span>
-            <span className="material-symbols-outlined text-[14px] text-primary">dns</span>
+            <Server aria-hidden className="size-[14px] text-accent" />
           </div>
           <div className="my-1">
             <span className="text-xl font-bold text-on-surface">32</span>
@@ -118,7 +119,7 @@ export const DataEngineScreen: React.FC<DataEngineScreenProps> = () => {
         <div className="bg-surface-container-low p-space-sm border border-outline-variant flex flex-col justify-between">
           <div className="flex items-center justify-between text-[11px] text-outline">
             <span>HIVE METASTORE</span>
-            <span className="material-symbols-outlined text-[14px] text-tertiary">database</span>
+            <Database aria-hidden className="size-[14px] text-neutral" />
           </div>
           <div className="my-1">
             <span className="text-xl font-bold text-on-surface">ONLINE</span>
@@ -129,7 +130,7 @@ export const DataEngineScreen: React.FC<DataEngineScreenProps> = () => {
         <div className="bg-surface-container-low p-space-sm border border-outline-variant flex flex-col justify-between">
           <div className="flex items-center justify-between text-[11px] text-outline">
             <span>KAFKA BUS</span>
-            <span className="material-symbols-outlined text-[14px] text-primary">swap_vert</span>
+            <ArrowUpDown aria-hidden className="size-[14px] text-accent" />
           </div>
           <div className="my-1">
             <span className="text-xl font-bold text-on-surface">ACTIVE</span>
@@ -140,7 +141,7 @@ export const DataEngineScreen: React.FC<DataEngineScreenProps> = () => {
         <div className="bg-surface-container-low p-space-sm border border-outline-variant flex flex-col justify-between">
           <div className="flex items-center justify-between text-[11px] text-outline">
             <span>DATA QUALITY</span>
-            <span className="material-symbols-outlined text-[14px] text-primary">verified</span>
+            <BadgeCheck aria-hidden className="size-[14px] text-accent" />
           </div>
           <div className="my-1">
             <span className="text-xl font-bold text-on-surface">98.7%</span>

@@ -14,13 +14,7 @@ import globals from 'globals';
  * disappear, so they are excluded and the list shrinks to empty as each domain
  * lands. Do not add to this list: new code is written to the full rule set.
  */
-const LEGACY_EXCLUDED = [
-  'src/api.ts',
-  'src/App.tsx',
-  'src/components/Navbar.tsx',
-  'src/components/Sidebar.tsx',
-  'src/pages/**',
-];
+const LEGACY_EXCLUDED = ['src/api.ts', 'src/App.tsx', 'src/pages/**'];
 
 export default tseslint.config(
   {
