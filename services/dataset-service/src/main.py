@@ -4,30 +4,30 @@ Manages secure dataset ingestion, SHA-256 checksum verification,
 schema structure validation, HDFS raw storage, and metadata lifecycle.
 """
 
+import asyncio
 import hashlib
 import os
-import shutil
 import sys
 import tempfile
 import uuid
-from typing import List, Optional
 
-from fastapi import FastAPI, UploadFile, File, Form, Header, Request, Response, status
+from fastapi import FastAPI, File, Form, Header, Request, Response, UploadFile, status
 from fastapi.responses import JSONResponse
-from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
 from pydantic import BaseModel
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..")))
 
 from shared.errors import (
-    PlatformException, ValidationException, NotFoundException,
-    AuthorizationException, AuthenticationException
+    AuthenticationException,
+    AuthorizationException,
+    NotFoundException,
+    PlatformException,
+    ValidationException,
 )
 from shared.hdfs import get_hdfs_client
 from shared.logger import get_logger
-from shared.models import (
-    DatasetMetadata, DatasetStatus, UserRole, AuditLogEntry
-)
+from shared.models import AuditLogEntry, DatasetMetadata, DatasetStatus, UserRole
 from shared.repository import Repository
 from shared.security import decode_token, require_role
 
@@ -45,7 +45,7 @@ EXPECTED_HEADERS = [
 MAX_FILE_SIZE_BYTES = 250 * 1024 * 1024  # 250 MB
 
 
-def get_current_user_context(authorization: Optional[str] = Header(None)) -> dict:
+def get_current_user_context(authorization: str | None = Header(None)) -> dict:
     if not authorization or not authorization.startswith("Bearer "):
         raise AuthenticationException("Missing or invalid Authorization header")
     token = authorization.split(" ")[1]
@@ -68,7 +68,7 @@ async def platform_exception_handler(request: Request, exc: PlatformException):
 
 @app.exception_handler(Exception)
 async def generic_exception_handler(request: Request, exc: Exception):
-    logger.error(f"Dataset service unhandled error: {str(exc)}", exc_info=True)
+    logger.error(f"Dataset service unhandled error: {exc!s}", exc_info=exc)
     return JSONResponse(
         status_code=500,
         content={
@@ -97,11 +97,17 @@ def metrics():
     return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
+def _read_first_line(path: str) -> str:
+    """Read the header row. Called via asyncio.to_thread from the async upload path."""
+    with open(path, encoding="utf-8", errors="ignore") as f:
+        return f.readline().strip()
+
+
 @app.post("/api/v1/datasets/upload", response_model=DatasetMetadata, status_code=status.HTTP_201_CREATED)
 async def upload_dataset(
     file: UploadFile = File(...),
-    workspace_id: Optional[str] = Form(None),
-    authorization: Optional[str] = Header(None),
+    workspace_id: str | None = Form(None),
+    authorization: str | None = Header(None),
     request: Request = None,
 ):
     corr_id = request.headers.get("X-Correlation-ID", str(uuid.uuid4())) if request else str(uuid.uuid4())
@@ -124,14 +130,15 @@ async def upload_dataset(
             size_bytes += len(chunk)
             if size_bytes > MAX_FILE_SIZE_BYTES:
                 os.remove(tmp_path)
-                raise ValidationException(f"Dataset exceeds maximum allowed size of 250MB", request_id=corr_id)
+                raise ValidationException("Dataset exceeds maximum allowed size of 250MB", request_id=corr_id)
             hasher.update(chunk)
-            tmp_file.write(chunk)
+            # Ingest is sized for 250MB uploads; keep every blocking write off the
+            # event loop so concurrent requests on this worker are not stalled.
+            await asyncio.to_thread(tmp_file.write, chunk)
 
     # Validate schema from first line
     try:
-        with open(tmp_path, "r", encoding="utf-8", errors="ignore") as f:
-            first_line = f.readline().strip()
+        first_line = await asyncio.to_thread(_read_first_line, tmp_path)
 
         delimiter = ";" if ";" in first_line else ","
         tokens = [t.strip() for t in first_line.split(delimiter)]
@@ -142,8 +149,9 @@ async def upload_dataset(
                 request_id=corr_id
             )
 
-        # Upload to HDFS raw storage
-        raw_hdfs_path = hdfs_client.upload_raw(dataset_id, tmp_path)
+        # Upload to HDFS raw storage. This is a synchronous network transfer of the
+        # whole file, so it runs in a worker thread rather than on the event loop.
+        raw_hdfs_path = await asyncio.to_thread(hdfs_client.upload_raw, dataset_id, tmp_path)
 
     finally:
         if os.path.exists(tmp_path):
@@ -185,7 +193,7 @@ async def upload_dataset(
 
 class LocalImportRequest(BaseModel):
     file_path: str
-    workspace_id: Optional[str] = "default-workspace"
+    workspace_id: str | None = "default-workspace"
 
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
@@ -196,7 +204,7 @@ ALLOWED_IMPORT_DIRS = [os.path.realpath(DATA_DIR), os.path.realpath(BASE_DIR)]
 @app.post("/api/v1/datasets/import-local", response_model=DatasetMetadata, status_code=status.HTTP_201_CREATED)
 def import_local_dataset(
     payload: LocalImportRequest,
-    authorization: Optional[str] = Header(None),
+    authorization: str | None = Header(None),
     request: Request = None,
 ):
     """
@@ -264,9 +272,9 @@ def import_local_dataset(
     return metadata
 
 
-@app.get("/api/v1/datasets", response_model=List[DatasetMetadata])
+@app.get("/api/v1/datasets", response_model=list[DatasetMetadata])
 def list_datasets(
-    authorization: Optional[str] = Header(None),
+    authorization: str | None = Header(None),
 ):
     user = get_current_user_context(authorization)
     return Repository.list_datasets(workspace_id=user.get("workspace_id"))
@@ -275,7 +283,7 @@ def list_datasets(
 @app.get("/api/v1/datasets/{dataset_id}", response_model=DatasetMetadata)
 def get_dataset(
     dataset_id: str,
-    authorization: Optional[str] = Header(None),
+    authorization: str | None = Header(None),
     request: Request = None,
 ):
     corr_id = request.headers.get("X-Correlation-ID", str(uuid.uuid4())) if request else str(uuid.uuid4())
@@ -294,7 +302,7 @@ def get_dataset(
 @app.delete("/api/v1/datasets/{dataset_id}")
 def delete_dataset(
     dataset_id: str,
-    authorization: Optional[str] = Header(None),
+    authorization: str | None = Header(None),
     request: Request = None,
 ):
     corr_id = request.headers.get("X-Correlation-ID", str(uuid.uuid4())) if request else str(uuid.uuid4())

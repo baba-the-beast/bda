@@ -4,15 +4,14 @@ Replays authentic historical smart-meter readings, computes sliding window telem
 and broadcasts events to subscribed SSE / WebSocket clients.
 """
 
-from collections import deque
-from datetime import datetime, timezone
-import json
 import os
 import queue
 import sys
 import threading
 import time
-from typing import Any, Dict, List, Optional
+from collections import deque
+from datetime import UTC, datetime
+from typing import Any
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..")))
 
@@ -29,15 +28,15 @@ class StreamSimulator:
     def __init__(self):
         self.is_running = False
         self.is_paused = False
-        self.dataset_id: Optional[str] = None
+        self.dataset_id: str | None = None
         self.speed_multiplier: float = 1.0
         self.events_per_second: int = 5
         self.repeat_mode: bool = True
         self.total_events_emitted: int = 0
-        self.last_event: Optional[Dict[str, Any]] = None
+        self.last_event: dict[str, Any] | None = None
 
-        self._thread: Optional[threading.Thread] = None
-        self._subscribers: List[queue.Queue] = []
+        self._thread: threading.Thread | None = None
+        self._subscribers: list[queue.Queue] = []
         self._sub_lock = threading.Lock()
         self._window_buffer = deque(maxlen=300)  # rolling window of 300 readings
 
@@ -52,7 +51,7 @@ class StreamSimulator:
             if q in self._subscribers:
                 self._subscribers.remove(q)
 
-    def _broadcast(self, data: Dict[str, Any]):
+    def _broadcast(self, data: dict[str, Any]):
         with self._sub_lock:
             for q in list(self._subscribers):
                 try:
@@ -97,7 +96,7 @@ class StreamSimulator:
             self._thread.join(timeout=2.0)
         logger.info("Stream simulator stopped")
 
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> dict[str, Any]:
         return {
             "is_running": self.is_running,
             "is_paused": self.is_paused,
@@ -126,9 +125,9 @@ class StreamSimulator:
         sleep_interval = 1.0 / float(self.events_per_second)
 
         while self.is_running:
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 # Skip header
-                header = f.readline()
+                f.readline()
                 for line in f:
                     while self.is_paused and self.is_running:
                         time.sleep(0.2)
@@ -155,7 +154,7 @@ class StreamSimulator:
                             "sub_metering_2": float(parts[6]),
                             "sub_metering_3": float(parts[7]),
                             "dataset_id": self.dataset_id,
-                            "simulated_at": datetime.now(timezone.utc).isoformat(),
+                            "simulated_at": datetime.now(UTC).isoformat(),
                         }
                     except (ValueError, IndexError):
                         continue
@@ -193,7 +192,7 @@ class StreamSimulator:
 
         self.is_running = False
 
-    def _calculate_window_metrics(self) -> Optional[StreamWindow]:
+    def _calculate_window_metrics(self) -> StreamWindow | None:
         if not self._window_buffer:
             return None
 
@@ -221,7 +220,7 @@ class StreamSimulator:
             elif second_avg < first_avg * 0.85:
                 trend = "FALLING"
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         return StreamWindow(
             dataset_id=self.dataset_id or "default",
             window_start=now,
@@ -232,6 +231,7 @@ class StreamSimulator:
             reading_count=len(recent),
             event_rate=float(self.events_per_second),
             sub_metering_total=round(sum(sub_totals) / len(sub_totals), 2),
+            tumbling_average_power=round(tumbling_avg, 4),
             recent_trend=trend,
         )
 

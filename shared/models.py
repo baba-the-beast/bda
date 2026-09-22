@@ -3,10 +3,11 @@ Core data models, analytical schemas, and request/response specifications
 for the Energy Analytics Platform.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, Field, EmailStr
+from typing import Any
+
+from pydantic import BaseModel, EmailStr, Field
 
 
 class UserRole(str, Enum):
@@ -69,7 +70,7 @@ class SessionRecord(BaseModel):
     jti: str
     user_id: str
     email: str
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     expires_at: datetime
     is_revoked: bool = False
 
@@ -83,7 +84,7 @@ class UserResponse(UserBase):
 class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
-    token_type: str = "bearer"
+    token_type: str = "bearer"  # noqa: S105
     expires_in: int = 900  # 15 minutes
 
 
@@ -112,7 +113,7 @@ class DataQualityReport(BaseModel):
     extreme_candidate_count: int = 0
     checksum_sha256: str = ""
     schema_version: str = "1.0.0"
-    rejection_reasons: Dict[str, int] = Field(default_factory=dict)
+    rejection_reasons: dict[str, int] = Field(default_factory=dict)
 
 
 class DatasetMetadata(BaseModel):
@@ -124,10 +125,10 @@ class DatasetMetadata(BaseModel):
     status: DatasetStatus = DatasetStatus.UPLOADED
     workspace_id: str = "default-workspace"
     created_by: str = "system"
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    raw_hdfs_path: Optional[str] = None
-    cleaned_hdfs_path: Optional[str] = None
-    quality_report: Optional[DataQualityReport] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    raw_hdfs_path: str | None = None
+    cleaned_hdfs_path: str | None = None
+    quality_report: DataQualityReport | None = None
 
 
 class CleanEnergyRecord(BaseModel):
@@ -153,7 +154,7 @@ class CleanEnergyRecord(BaseModel):
 class AnalyticsJobCreate(BaseModel):
     dataset_id: str
     job_type: JobType
-    parameters: Dict[str, Any] = Field(default_factory=dict)
+    parameters: dict[str, Any] = Field(default_factory=dict)
 
 
 class AnalyticsJobResponse(BaseModel):
@@ -164,15 +165,15 @@ class AnalyticsJobResponse(BaseModel):
     status: JobStatus
     workspace_id: str
     created_by: str
-    start_time: Optional[datetime] = None
-    end_time: Optional[datetime] = None
-    duration_seconds: Optional[float] = None
+    start_time: datetime | None = None
+    end_time: datetime | None = None
+    duration_seconds: float | None = None
     input_path: str
     output_path: str
     retry_count: int = 0
-    error_message: Optional[str] = None
+    error_message: str | None = None
     progress_percent: int = 0
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 # ---------------------------------------------------------------------------
@@ -191,20 +192,20 @@ class DailyAggregate(BaseModel):
     sub_metering_2_total: float
     sub_metering_3_total: float
     reading_count: int
-    generated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    generated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 class HourlyAggregate(BaseModel):
     dataset_id: str
     dataset_version: int = 1
     hour: int  # 0 - 23
-    date: Optional[str] = None  # Optional specific date
+    date: str | None = None  # Optional specific date
     total_consumption_kwh: float
     average_power: float
     minimum_power: float
     maximum_power: float
     reading_count: int
-    generated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    generated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 class MonthlyAggregate(BaseModel):
@@ -217,7 +218,7 @@ class MonthlyAggregate(BaseModel):
     minimum_power: float
     maximum_power: float
     reading_count: int
-    generated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    generated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 class PeakEvent(BaseModel):
@@ -234,7 +235,7 @@ class PeakEvent(BaseModel):
     sub_metering_3: float
     threshold_applied: float
     calculation_version: str = "1.0.0"
-    generated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    generated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 class StreamWindow(BaseModel):
@@ -247,8 +248,11 @@ class StreamWindow(BaseModel):
     reading_count: int
     event_rate: float
     sub_metering_total: float
+    # 1-minute tumbling window average; defaulted so documents written before this
+    # field existed still deserialize.
+    tumbling_average_power: float = 0.0
     recent_trend: str = "STABLE"  # RISING, FALLING, STABLE
-    computed_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    computed_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 # ---------------------------------------------------------------------------
@@ -262,18 +266,18 @@ class AuditLogEntry(BaseModel):
     target_resource: str
     result: str  # SUCCESS / FAILURE
     status_code: int
-    request_id: Optional[str] = None
-    ip_address: Optional[str] = None
-    details: Dict[str, Any] = Field(default_factory=dict)
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    request_id: str | None = None
+    ip_address: str | None = None
+    details: dict[str, Any] = Field(default_factory=dict)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 class SecurityEventEntry(BaseModel):
     id: str
     event_type: str  # LOGIN_FAILED, BRUTE_FORCE_SUSPECT, TOKEN_REUSE, INJECTION_ATTEMPT
     severity: str    # LOW, MEDIUM, HIGH, CRITICAL
-    actor: Optional[str] = None
-    ip_address: Optional[str] = None
-    request_id: Optional[str] = None
-    details: Dict[str, Any] = Field(default_factory=dict)
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    actor: str | None = None
+    ip_address: str | None = None
+    request_id: str | None = None
+    details: dict[str, Any] = Field(default_factory=dict)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
