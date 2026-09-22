@@ -82,6 +82,11 @@
       "name": "styles (brotli)",
       "path": "dist/assets/*.css",
       "limit": "20 kB"
+    },
+    {
+      "name": "charts chunk (brotli)",
+      "path": "dist/assets/charts-*.js",
+      "limit": "175 kB"
     }
   ]
 }

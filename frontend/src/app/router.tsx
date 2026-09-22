@@ -16,17 +16,13 @@ const OverviewPage = lazy(() =>
   import('../features/overview/OverviewPage').then((m) => ({ default: m.OverviewPage })),
 );
 const DatasetsPage = lazy(() =>
-  import('../pages/DatasetsPage').then((m) => ({ default: m.DatasetsPage })),
+  import('../features/datasets/DatasetsPage').then((m) => ({ default: m.DatasetsPage })),
 );
-const DataEngineScreen = lazy(() =>
-  import('../pages/stitch/DataEngineScreen').then((m) => ({ default: m.DataEngineScreen })),
+const JobsPage = lazy(() =>
+  import('../features/jobs/JobsPage').then((m) => ({ default: m.JobsPage })),
 );
-const JobsPage = lazy(() => import('../pages/JobsPage').then((m) => ({ default: m.JobsPage })));
-const LoadProfileScreen = lazy(() =>
-  import('../pages/stitch/LoadProfileScreen').then((m) => ({ default: m.LoadProfileScreen })),
-);
-const SubMeterScreen = lazy(() =>
-  import('../pages/stitch/SubMeterScreen').then((m) => ({ default: m.SubMeterScreen })),
+const AnalysisPage = lazy(() =>
+  import('../features/analysis/AnalysisPage').then((m) => ({ default: m.AnalysisPage })),
 );
 const VoltagePage = lazy(() =>
   import('../features/voltage/VoltagePage').then((m) => ({ default: m.VoltagePage })),
@@ -61,10 +57,8 @@ export const router = createBrowserRouter([
       { index: true, element: <Navigate to="/overview" replace /> },
       { path: 'overview', element: <OverviewPage /> },
       { path: 'datasets', element: <DatasetsPage /> },
-      { path: 'pipelines', element: <DataEngineScreen /> },
       { path: 'jobs', element: <JobsPage /> },
-      { path: 'analysis', element: <LoadProfileScreen /> },
-      { path: 'sub-meters', element: <SubMeterScreen /> },
+      { path: 'analysis', element: <AnalysisPage /> },
       { path: 'voltage', element: <VoltagePage /> },
       { path: 'query', element: <QueryLabPage /> },
       { path: 'stream', element: <StreamPage /> },

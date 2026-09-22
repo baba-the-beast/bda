@@ -158,10 +158,8 @@ test.describe('routing', () => {
 
     for (const path of [
       '/datasets',
-      '/pipelines',
       '/jobs',
       '/analysis',
-      '/sub-meters',
       '/voltage',
       '/query',
       '/platform',

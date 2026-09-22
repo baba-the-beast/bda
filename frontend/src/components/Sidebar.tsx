@@ -9,7 +9,6 @@ import {
   Radio,
   ShieldCheck,
   Terminal,
-  Workflow,
   Zap,
 } from 'lucide-react';
 
@@ -20,10 +19,8 @@ import { Badge } from './ui/Status';
 export type PageId =
   | 'overview'
   | 'datasets'
-  | 'pipelines'
   | 'jobs'
   | 'analysis'
-  | 'sub-meters'
   | 'voltage'
   | 'query'
   | 'stream'
@@ -35,10 +32,8 @@ export type PageId =
 export const ROUTE_FOR_PAGE: Record<PageId, string> = {
   overview: '/overview',
   datasets: '/datasets',
-  pipelines: '/pipelines',
   jobs: '/jobs',
   analysis: '/analysis',
-  'sub-meters': '/sub-meters',
   voltage: '/voltage',
   query: '/query',
   stream: '/stream',
@@ -72,15 +67,13 @@ const SECTIONS: { heading: string; items: NavItem[] }[] = [
     heading: 'Data pipeline',
     items: [
       { id: 'datasets', label: 'Datasets & quality', Icon: Database },
-      { id: 'pipelines', label: 'Pipelines & batch', Icon: Workflow, badge: 'HDFS' },
-      { id: 'jobs', label: 'MapReduce jobs', Icon: Activity },
+      { id: 'jobs', label: 'MapReduce jobs', Icon: Activity, badge: 'HDFS' },
     ],
   },
   {
     heading: 'Analysis',
     items: [
-      { id: 'analysis', label: 'Load profile', Icon: Gauge },
-      { id: 'sub-meters', label: 'Sub-meters', Icon: Zap },
+      { id: 'analysis', label: 'Consumption analysis', Icon: Gauge },
       { id: 'voltage', label: 'Voltage & power', Icon: Zap },
       { id: 'query', label: 'Hive query lab', Icon: Terminal },
     ],
