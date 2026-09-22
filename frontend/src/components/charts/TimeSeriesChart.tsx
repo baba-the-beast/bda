@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import {
   DATASET_TIME_ZONE_LABEL,
   formatCompact,
+  formatDatasetDate,
   formatDatasetTime,
   formatValue,
   type Unit,
@@ -65,10 +66,23 @@ export function TimeSeriesChart({
   const option = useMemo<EChartsOption>(() => {
     const toMs = (t: number | string) => (typeof t === 'number' ? t : new Date(t).getTime());
 
+    // A series spanning days wants dates on the axis; one spanning minutes
+    // wants clock times. Labelling daily aggregates "18:00" is meaningless.
+    const stamps = series.flatMap((s) => s.points.map((p) => toMs(p.t)));
+    const spanMs = stamps.length < 2 ? 0 : Math.max(...stamps) - Math.min(...stamps);
+    const spansDays = spanMs > 48 * 60 * 60 * 1000;
+    const axisLabel = (value: number) =>
+      spansDays ? formatDatasetDate(value) : formatDatasetTime(value, { withZone: false });
+    const pointLabel = (value: number) =>
+      spansDays ? formatDatasetDate(value) : formatDatasetTime(value, { withSeconds: true });
+
     return {
       animation: false,
       color: [...SERIES_PALETTE],
-      grid: gridCommon,
+      // With a slider, the grid must leave room for it or the axis labels
+      // render underneath the brush (dataviz anti-pattern: an axis band the
+      // container excludes).
+      grid: zoomable ? { ...gridCommon, bottom: 38 } : gridCommon,
       tooltip: {
         trigger: 'axis',
         ...tooltipCommon(chrome),
@@ -82,7 +96,7 @@ export function TimeSeriesChart({
           const head =
             stamp === undefined
               ? ''
-              : `<div style="color:${chrome.textMuted};margin-bottom:4px">${formatDatasetTime(stamp, { withSeconds: true })}</div>`;
+              : `<div style="color:${chrome.textMuted};margin-bottom:4px">${pointLabel(stamp)}</div>`;
 
           const body = rows
             .map((row) => {
@@ -105,10 +119,7 @@ export function TimeSeriesChart({
       xAxis: {
         type: 'time',
         ...axisCommon(chrome),
-        axisLabel: {
-          ...axisCommon(chrome).axisLabel,
-          formatter: (value: number) => formatDatasetTime(value, { withZone: false }),
-        },
+        axisLabel: { ...axisCommon(chrome).axisLabel, formatter: axisLabel },
       },
       yAxis: {
         type: 'value',
@@ -168,6 +179,15 @@ export function TimeSeriesChart({
   const containerRef = useECharts(option);
 
   const tableRows = useMemo(() => {
+    const allStamps = series.flatMap((s) =>
+      s.points.map((p) => (typeof p.t === 'number' ? p.t : new Date(p.t).getTime())),
+    );
+    const tableSpansDays =
+      allStamps.length >= 2 &&
+      Math.max(...allStamps) - Math.min(...allStamps) > 48 * 60 * 60 * 1000;
+    const tableStamp = (value: number) =>
+      tableSpansDays ? formatDatasetDate(value) : formatDatasetTime(value, { withSeconds: true });
+
     const stamps = new Map<number, (number | null)[]>();
     series.forEach((s, seriesIndex) => {
       for (const point of s.points) {
@@ -180,10 +200,7 @@ export function TimeSeriesChart({
 
     return [...stamps.entries()]
       .sort(([a], [b]) => a - b)
-      .map(([stamp, values]) => [
-        formatDatasetTime(stamp, { withSeconds: true }),
-        ...values.map((v) => formatValue(v, unit)),
-      ]);
+      .map(([stamp, values]) => [tableStamp(stamp), ...values.map((v) => formatValue(v, unit))]);
   }, [series, unit]);
 
   return (

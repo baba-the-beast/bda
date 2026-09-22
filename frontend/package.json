@@ -18,7 +18,8 @@
     "test:e2e": "playwright test",
     "size": "size-limit",
     "gen:api": "openapi-typescript http://localhost:8000/openapi.json -o src/types/generated/api.ts",
-    "lighthouse": "lighthouse http://127.0.0.1:4173/sign-in --only-categories=performance,accessibility,best-practices --output=html --output-path=./lighthouse-report.html --chrome-flags=\"--headless=new\""
+    "lighthouse": "lighthouse http://127.0.0.1:4173/sign-in --only-categories=performance,accessibility,best-practices --output=html --output-path=./lighthouse-report.html --chrome-flags=\"--headless=new\"",
+    "screenshots": "node scripts/capture-screenshots.mjs"
   },
   "dependencies": {
     "@fontsource/inter": "^5.3.0",

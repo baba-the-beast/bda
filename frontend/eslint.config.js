@@ -82,9 +82,16 @@ export default tseslint.config(
     },
   },
   {
-    files: ['*.config.{js,ts}', 'vite.config.ts', 'eslint.config.js'],
-    languageOptions: { globals: { ...globals.node } },
+    // Build and tooling scripts run in Node and are outside the app's tsconfig.
+    files: ['*.config.{js,ts}', 'vite.config.ts', 'eslint.config.js', 'scripts/**/*.mjs'],
+    // The spread carries its own languageOptions, so it goes before ours or it
+    // wipes the globals and every Node builtin reads as undefined.
     ...tseslint.configs.disableTypeChecked,
+    languageOptions: { globals: { ...globals.node, ...globals.es2025 } },
+    rules: {
+      ...tseslint.configs.disableTypeChecked.rules,
+      'no-console': 'off',
+    },
   },
   prettier,
 );
