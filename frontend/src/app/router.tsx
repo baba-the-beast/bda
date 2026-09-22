@@ -13,7 +13,7 @@ import { NotFoundPage } from './NotFoundPage';
  * one domain at a time; the URLs and guards are already their final shape.
  */
 const OverviewPage = lazy(() =>
-  import('../pages/OverviewPage').then((m) => ({ default: m.OverviewPage })),
+  import('../features/overview/OverviewPage').then((m) => ({ default: m.OverviewPage })),
 );
 const DatasetsPage = lazy(() =>
   import('../pages/DatasetsPage').then((m) => ({ default: m.DatasetsPage })),
@@ -28,14 +28,14 @@ const LoadProfileScreen = lazy(() =>
 const SubMeterScreen = lazy(() =>
   import('../pages/stitch/SubMeterScreen').then((m) => ({ default: m.SubMeterScreen })),
 );
-const SubstationScreen = lazy(() =>
-  import('../pages/stitch/SubstationScreen').then((m) => ({ default: m.SubstationScreen })),
+const VoltagePage = lazy(() =>
+  import('../features/voltage/VoltagePage').then((m) => ({ default: m.VoltagePage })),
 );
 const QueryLabPage = lazy(() =>
   import('../pages/QueryLabPage').then((m) => ({ default: m.QueryLabPage })),
 );
-const LiveTelemetryScreen = lazy(() =>
-  import('../pages/stitch/LiveTelemetryScreen').then((m) => ({ default: m.LiveTelemetryScreen })),
+const StreamPage = lazy(() =>
+  import('../features/stream/StreamPage').then((m) => ({ default: m.StreamPage })),
 );
 const ProjectMetricsPage = lazy(() =>
   import('../pages/ProjectMetricsPage').then((m) => ({ default: m.ProjectMetricsPage })),
@@ -65,9 +65,9 @@ export const router = createBrowserRouter([
       { path: 'jobs', element: <JobsPage /> },
       { path: 'analysis', element: <LoadProfileScreen /> },
       { path: 'sub-meters', element: <SubMeterScreen /> },
-      { path: 'voltage', element: <SubstationScreen /> },
+      { path: 'voltage', element: <VoltagePage /> },
       { path: 'query', element: <QueryLabPage /> },
-      { path: 'stream', element: <LiveTelemetryScreen /> },
+      { path: 'stream', element: <StreamPage /> },
       { path: 'platform', element: <ProjectMetricsPage /> },
       {
         path: 'admin',

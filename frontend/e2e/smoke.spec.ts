@@ -31,6 +31,12 @@ const DATASET = {
 };
 
 async function stubApi(page: Page): Promise<void> {
+  // Playwright matches the most recently registered route first, so the
+  // catch-all goes down before the specific handlers that must beat it.
+  await page.route('**/api/v1/**', (route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }),
+  );
+
   await page.route('**/api/v1/auth/login', (route) =>
     route.fulfill({
       status: 200,
@@ -52,11 +58,6 @@ async function stubApi(page: Page): Promise<void> {
       contentType: 'application/json',
       body: JSON.stringify([DATASET]),
     }),
-  );
-  // Everything else answers with an empty collection so panels render their
-  // empty state rather than hanging.
-  await page.route('**/api/v1/**', (route) =>
-    route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }),
   );
 }
 

@@ -44,10 +44,10 @@ export function SkeletonText({ lines = 3, className }: { lines?: number; classNa
 
 export interface EmptyStateProps {
   title: string;
-  description?: string;
-  action?: ReactNode;
-  icon?: ReactNode;
-  className?: string;
+  description?: string | undefined;
+  action?: ReactNode | undefined;
+  icon?: ReactNode | undefined;
+  className?: string | undefined;
 }
 
 /** Nothing to show, and that is a correct outcome rather than a failure. */
@@ -65,7 +65,7 @@ export function EmptyState({ title, description, action, icon, className }: Empt
 }
 
 export interface ErrorStateProps {
-  title?: string;
+  title?: string | undefined;
   message: string;
   /** Surfaced so a user can quote it and the line can be found in the logs. */
   correlationId?: string | null;

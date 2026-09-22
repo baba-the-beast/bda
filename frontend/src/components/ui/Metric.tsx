@@ -9,12 +9,12 @@ export interface MetricProps {
    * than a zero or a placeholder that reads as real (docs/FRONTEND_AUDIT.md §3.2).
    */
   value: string | null;
-  unit?: string;
+  unit?: string | undefined;
   /** Percentage change against the previous period, if one was computed. */
   delta?: number | null;
   /** Whether a rising value is good, bad, or neither. */
   deltaIntent?: 'up-is-good' | 'up-is-bad' | 'neutral';
-  asOf?: Date | string | null;
+  asOf?: Date | string | null | undefined;
   className?: string;
 }
 

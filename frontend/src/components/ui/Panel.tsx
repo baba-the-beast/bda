@@ -18,13 +18,13 @@ export function Panel({ className, children, ...props }: PanelProps) {
 export interface PanelHeaderProps {
   title: string;
   /** Where the numbers came from, e.g. "Hive · daily_aggregates". */
-  source?: string;
+  source?: string | undefined;
   /** When the data was fetched. Rendered as a machine-readable <time>. */
-  asOf?: Date | string | null;
+  asOf?: Date | string | null | undefined;
   /** Marks the data as known-stale, e.g. while a refetch is failing. */
-  stale?: boolean;
-  actions?: ReactNode;
-  className?: string;
+  stale?: boolean | undefined;
+  actions?: ReactNode | undefined;
+  className?: string | undefined;
 }
 
 /**

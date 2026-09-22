@@ -183,12 +183,6 @@ export function useTelemetryStream(enabled = true): TelemetryState {
     };
   }, [enabled, attempt, scheduleFlush]);
 
-  useEffect(() => {
-    if (!enabled) {
-      setStatus('closed');
-    }
-  }, [enabled]);
-
   return {
     status,
     readings,
