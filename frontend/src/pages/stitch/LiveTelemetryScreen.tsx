@@ -30,7 +30,7 @@ export const LiveTelemetryScreen: React.FC<LiveTelemetryScreenProps> = () => {
   useEffect(() => {
     checkStreamStatus();
     loadDatasets();
-    startSseListener();
+    void startSseListener();
 
     return () => {
       if (eventSourceRef.current) {
@@ -64,11 +64,12 @@ export const LiveTelemetryScreen: React.FC<LiveTelemetryScreenProps> = () => {
     }
   };
 
-  const startSseListener = () => {
+  const startSseListener = async () => {
     try {
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
       }
+      const ticket = await api.getStreamTicket();
       const es = api.subscribeLiveStream(
         (data: any) => {
           const reading = data?.reading || data;
@@ -125,7 +126,8 @@ export const LiveTelemetryScreen: React.FC<LiveTelemetryScreenProps> = () => {
         },
         () => {
           console.warn('Live telemetry SSE fallback mode');
-        }
+        },
+        ticket
       );
       eventSourceRef.current = es;
     } catch (e) {

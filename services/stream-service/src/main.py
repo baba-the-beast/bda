@@ -26,7 +26,12 @@ from shared.errors import AuthenticationException, NotFoundException, PlatformEx
 from shared.logger import get_logger
 from shared.models import AuditLogEntry, StreamWindow, UserRole
 from shared.repository import Repository
-from shared.security import decode_token, require_role
+from shared.security import (
+    STREAM_TICKET_EXPIRE_SECONDS,
+    create_stream_ticket,
+    decode_token,
+    require_role,
+)
 
 logger = get_logger("stream-service")
 
@@ -91,6 +96,11 @@ class StreamStartRequest(BaseModel):
     events_per_second: int = Field(5, ge=1, le=100)
     speed_multiplier: float = Field(1.0, ge=0.1, le=50.0)
     repeat_mode: bool = True
+
+
+class StreamTicketResponse(BaseModel):
+    ticket: str
+    expires_in: int = Field(description="Ticket lifetime in seconds")
 
 
 @app.post("/api/v1/stream/start")
@@ -187,26 +197,50 @@ def get_stream_windows(
     return Repository.get_recent_stream_windows(dataset_id, limit=limit)
 
 
+@app.post("/api/v1/stream/ticket", response_model=StreamTicketResponse)
+def issue_stream_ticket(authorization: str | None = Header(None)):
+    """
+    Exchange a bearer access token for a short-lived, stream-only ticket.
+
+    EventSource cannot send an Authorization header, so the credential must go in
+    the URL, where it reaches access logs, proxies and browser history. Clients
+    call this first and put the ticket there instead of their access token.
+    """
+    user = get_current_user_context(authorization)
+    ticket = create_stream_ticket(
+        user_id=user["sub"],
+        email=user["email"],
+        role=user["role"],
+        workspace_id=user.get("workspace_id", "default-workspace"),
+    )
+    return StreamTicketResponse(ticket=ticket, expires_in=STREAM_TICKET_EXPIRE_SECONDS)
+
+
 @app.get("/api/v1/stream/live")
-async def live_stream_feed(request: Request, token: str | None = Query(None)):
+async def live_stream_feed(
+    request: Request,
+    ticket: str | None = Query(None, description="Short-lived ticket from POST /stream/ticket"),
+):
     """
     Server-Sent Events (SSE) streaming endpoint.
     Transmits live smart meter readings and rolling window aggregates to UI dashboards.
-    Accepts JWT authentication via ?token= query parameter or Authorization header.
+    Authenticates with a stream ticket (?ticket=) or an Authorization header.
     """
     auth_header = request.headers.get("Authorization")
-    jwt_token = token
-    if not jwt_token and auth_header and auth_header.startswith("Bearer "):
-        jwt_token = auth_header.split(" ")[1]
-
     env = os.getenv("ENVIRONMENT", "development").lower()
-    if env == "production" and not jwt_token:
-        raise AuthenticationException("Authentication token required to subscribe to live telemetry stream.")
-    if jwt_token:
+
+    if ticket:
         try:
-            decode_token(jwt_token, expected_type="access")
+            decode_token(ticket, expected_type="stream")
+        except Exception as e:
+            raise AuthenticationException("Invalid or expired stream ticket.") from e
+    elif auth_header and auth_header.startswith("Bearer "):
+        try:
+            decode_token(auth_header.split(" ")[1], expected_type="access")
         except Exception as e:
             raise AuthenticationException("Invalid or expired stream authorization token.") from e
+    elif env == "production":
+        raise AuthenticationException("A stream ticket is required to subscribe to live telemetry.")
 
     sub_queue = simulator_instance.register_subscriber()
     ACTIVE_STREAM_CLIENTS.inc()

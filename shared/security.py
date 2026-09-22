@@ -101,6 +101,39 @@ def create_refresh_token(
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
 
+# A stream ticket is deliberately short-lived. EventSource cannot set an
+# Authorization header, so the credential has to travel in the URL, where it
+# lands in access logs, proxy logs and browser history. Putting a 30-second,
+# stream-only token there instead of a 15-minute full-access JWT bounds the
+# exposure to a window too small to replay by hand, and the ticket authorises
+# nothing beyond reading the telemetry feed.
+STREAM_TICKET_EXPIRE_SECONDS = 30
+
+
+def create_stream_ticket(
+    user_id: str,
+    email: str,
+    role: UserRole,
+    workspace_id: str = "default-workspace",
+) -> str:
+    now = datetime.now(UTC)
+    expire = now + timedelta(seconds=STREAM_TICKET_EXPIRE_SECONDS)
+    payload = {
+        "sub": user_id,
+        "email": email,
+        "role": role.value if isinstance(role, UserRole) else role,
+        "workspace_id": workspace_id,
+        "exp": int(expire.timestamp()),
+        "iat": int(now.timestamp()),
+        "nbf": int(now.timestamp()),
+        "iss": JWT_ISSUER,
+        "aud": JWT_AUDIENCE,
+        "jti": str(uuid.uuid4()),
+        "token_type": "stream",
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+
 def decode_token(token: str, expected_type: str = "access") -> TokenPayload:
     try:
         raw_payload = jwt.decode(

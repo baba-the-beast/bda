@@ -228,10 +228,24 @@ class ApiClient {
     window.URL.revokeObjectURL(objectUrl);
   }
 
+  /** Exchange the access token for a short-lived, stream-only ticket. */
+  async getStreamTicket(): Promise<string> {
+    const data = await this.request<{ ticket: string; expires_in: number }>('/stream/ticket', {
+      method: 'POST',
+    });
+    return data.ticket;
+  }
+
   // Live Stream SSE Subscriber
-  subscribeLiveStream(onData: (data: any) => void, onError?: (err: any) => void): EventSource {
-    const tokenQuery = this.token ? `?token=${encodeURIComponent(this.token)}` : '';
-    const es = new EventSource(`${API_BASE}/stream/live${tokenQuery}`);
+  subscribeLiveStream(
+    onData: (data: any) => void,
+    onError?: (err: any) => void,
+    ticket?: string,
+  ): EventSource {
+    // The ticket expires in 30 seconds and grants nothing but the telemetry
+    // feed, so exposing it in the URL is bounded (docs/FRONTEND_BACKEND_REQUESTS.md).
+    const ticketQuery = ticket ? `?ticket=${encodeURIComponent(ticket)}` : '';
+    const es = new EventSource(`${API_BASE}/stream/live${ticketQuery}`);
 
     const parseAndDispatch = (event: MessageEvent) => {
       try {
