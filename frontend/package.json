@@ -17,7 +17,8 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "size": "size-limit",
-    "gen:api": "openapi-typescript http://localhost:8000/openapi.json -o src/types/generated/api.ts"
+    "gen:api": "openapi-typescript http://localhost:8000/openapi.json -o src/types/generated/api.ts",
+    "lighthouse": "lighthouse http://127.0.0.1:4173/sign-in --only-categories=performance,accessibility,best-practices --output=html --output-path=./lighthouse-report.html --chrome-flags=\"--headless=new\""
   },
   "dependencies": {
     "@fontsource/inter": "^5.3.0",
@@ -61,6 +62,7 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "globals": "^17.12.0",
     "jsdom": "^30.1.1",
+    "lighthouse": "^13.5.0",
     "msw": "^2.15.0",
     "openapi-typescript": "^7.13.0",
     "postcss": "^8.5.2",

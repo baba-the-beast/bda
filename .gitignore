@@ -41,6 +41,8 @@ frontend/dist/
 frontend/playwright-report/
 frontend/test-results/
 frontend/coverage/
+frontend/lighthouse-report.html
+frontend/screenshots/
 
 # Large Datasets and Extracted Files
 data/raw/*.txt

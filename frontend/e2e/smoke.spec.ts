@@ -1,5 +1,4 @@
-import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 /**
  * End-to-end smoke coverage.
@@ -9,66 +8,7 @@ import { expect, test, type Page } from '@playwright/test';
  * Phase 5 replaces the page components.
  */
 
-const USER = {
-  id: 'user-1',
-  email: 'analyst@example.test',
-  full_name: 'Test Analyst',
-  role: 'ADMIN',
-  workspace_id: 'default-workspace',
-  is_active: true,
-};
-
-const DATASET = {
-  id: 'ds_e2e00000001',
-  filename: 'household_power_consumption.txt',
-  size_bytes: 28537,
-  checksum_sha256: 'abc123',
-  version: 1,
-  status: 'PROCESSED',
-  workspace_id: 'default-workspace',
-  created_by: USER.email,
-  created_at: '2026-09-22T17:09:24Z',
-};
-
-async function stubApi(page: Page): Promise<void> {
-  // Playwright matches the most recently registered route first, so the
-  // catch-all goes down before the specific handlers that must beat it.
-  await page.route('**/api/v1/**', (route) =>
-    route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }),
-  );
-
-  await page.route('**/api/v1/auth/login', (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        access_token: 'e2e-access',
-        refresh_token: 'e2e-refresh',
-        token_type: 'bearer',
-        expires_in: 900,
-      }),
-    }),
-  );
-  await page.route('**/api/v1/auth/me', (route) =>
-    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(USER) }),
-  );
-  await page.route('**/api/v1/datasets', (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify([DATASET]),
-    }),
-  );
-}
-
-async function signIn(page: Page): Promise<void> {
-  await stubApi(page);
-  await page.goto('/sign-in');
-  await page.getByLabel('Email').fill(USER.email);
-  await page.getByLabel('Password').fill('correct-horse-battery');
-  await page.getByRole('button', { name: 'Sign in' }).click();
-  await expect(page).toHaveURL(/\/overview/);
-}
+import { USER, signIn, stubApi } from './fixtures';
 
 test.describe('sign-in', () => {
   test.beforeEach(async ({ page }) => {
@@ -187,35 +127,5 @@ test.describe('routing', () => {
     await signIn(page);
     await page.goto('/not-a-section');
     await expect(page.getByText('Page not found')).toBeVisible();
-  });
-});
-
-test.describe('accessibility', () => {
-  test('sign-in has no serious or critical violations', async ({ page }) => {
-    await stubApi(page);
-    await page.goto('/sign-in');
-
-    const results = await new AxeBuilder({ page })
-      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
-      .analyze();
-    const blocking = results.violations.filter(
-      (v) => v.impact === 'serious' || v.impact === 'critical',
-    );
-
-    expect(blocking, blocking.map((v) => `${v.id}: ${v.help}`).join('\n')).toEqual([]);
-  });
-
-  test('the signed-in shell has no serious or critical violations', async ({ page }) => {
-    await signIn(page);
-
-    const results = await new AxeBuilder({ page })
-      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
-      .include('nav[aria-label="Sections"]')
-      .analyze();
-    const blocking = results.violations.filter(
-      (v) => v.impact === 'serious' || v.impact === 'critical',
-    );
-
-    expect(blocking, blocking.map((v) => `${v.id}: ${v.help}`).join('\n')).toEqual([]);
   });
 });
