@@ -41,37 +41,6 @@ export default {
         critical: { DEFAULT: rgb('--color-critical'), bg: rgb('--color-critical-bg') },
         info: { DEFAULT: rgb('--color-info'), bg: rgb('--color-info-bg') },
         neutral: { DEFAULT: rgb('--color-neutral'), bg: rgb('--color-neutral-bg') },
-
-        /**
-         * Compatibility aliases for the pre-overhaul Material-derived palette.
-         *
-         * They map the old names onto the new tokens so the legacy screens keep
-         * rendering while Phases 3-5 replace them. Do not use these in new code.
-         * Delete this block once src/pages/** is rewritten (Phase 5); nothing
-         * should reference them by then.
-         */
-        background: rgb('--color-canvas'),
-        'surface-bright': rgb('--color-surface-raised'),
-        'surface-container-lowest': rgb('--color-canvas'),
-        'surface-container-low': rgb('--color-surface'),
-        'surface-container': rgb('--color-surface-raised'),
-        'surface-container-high': rgb('--color-surface-raised'),
-        'on-surface': rgb('--color-text'),
-        'on-surface-variant': rgb('--color-text-muted'),
-        outline: rgb('--color-text-subtle'),
-        'outline-variant': rgb('--color-border'),
-        primary: rgb('--color-accent'),
-        'primary-container': rgb('--color-accent'),
-        'primary-fixed-dim': rgb('--color-accent-hover'),
-        'on-primary': rgb('--color-accent-contrast'),
-        'on-primary-container': rgb('--color-accent-contrast'),
-        secondary: rgb('--color-info'),
-        'on-secondary': rgb('--color-accent-contrast'),
-        tertiary: rgb('--color-neutral'),
-        error: rgb('--color-critical'),
-        'error-container': rgb('--color-critical-bg'),
-        'on-error': rgb('--color-critical'),
-        'on-error-container': rgb('--color-critical'),
       },
       spacing: {
         1: 'var(--space-1)',
@@ -82,16 +51,6 @@ export default {
         6: 'var(--space-6)',
         7: 'var(--space-7)',
         8: 'var(--space-8)',
-
-        /* Compatibility aliases for the pre-overhaul spacing ramp. Removed with
-           src/pages/** in Phase 5; do not use in new code. */
-        margin: 'var(--space-3)',
-        gutter: 'var(--space-2)',
-        'space-xs': 'var(--space-1)',
-        'space-sm': 'var(--space-2)',
-        'space-md': 'var(--space-2)',
-        'space-lg': 'var(--space-3)',
-        'space-xl': 'var(--space-4)',
       },
       borderRadius: {
         sm: 'var(--radius-sm)',

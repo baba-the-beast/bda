@@ -1,7 +1,7 @@
 import { LogOut } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-import type { User } from '../types';
+import type { User } from '../lib/api/endpoints';
 
 import { Button } from './ui/Button';
 

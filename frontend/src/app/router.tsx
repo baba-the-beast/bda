@@ -27,18 +27,20 @@ const AnalysisPage = lazy(() =>
 const VoltagePage = lazy(() =>
   import('../features/voltage/VoltagePage').then((m) => ({ default: m.VoltagePage })),
 );
-const QueryLabPage = lazy(() =>
-  import('../pages/QueryLabPage').then((m) => ({ default: m.QueryLabPage })),
+const QueryPage = lazy(() =>
+  import('../features/query/QueryPage').then((m) => ({ default: m.QueryPage })),
 );
 const StreamPage = lazy(() =>
   import('../features/stream/StreamPage').then((m) => ({ default: m.StreamPage })),
 );
-const ProjectMetricsPage = lazy(() =>
-  import('../pages/ProjectMetricsPage').then((m) => ({ default: m.ProjectMetricsPage })),
+const PlatformPage = lazy(() =>
+  import('../features/platform/PlatformPage').then((m) => ({ default: m.PlatformPage })),
 );
-const AdminPage = lazy(() => import('../pages/AdminPage').then((m) => ({ default: m.AdminPage })));
-const VivaDemoPage = lazy(() =>
-  import('../pages/VivaDemoPage').then((m) => ({ default: m.VivaDemoPage })),
+const AdminPage = lazy(() =>
+  import('../features/admin/AdminPage').then((m) => ({ default: m.AdminPage })),
+);
+const DemoPage = lazy(() =>
+  import('../features/demo/DemoPage').then((m) => ({ default: m.DemoPage })),
 );
 const SignInPage = lazy(() =>
   import('../features/auth/SignInPage').then((m) => ({ default: m.SignInPage })),
@@ -60,9 +62,9 @@ export const router = createBrowserRouter([
       { path: 'jobs', element: <JobsPage /> },
       { path: 'analysis', element: <AnalysisPage /> },
       { path: 'voltage', element: <VoltagePage /> },
-      { path: 'query', element: <QueryLabPage /> },
+      { path: 'query', element: <QueryPage /> },
       { path: 'stream', element: <StreamPage /> },
-      { path: 'platform', element: <ProjectMetricsPage /> },
+      { path: 'platform', element: <PlatformPage /> },
       {
         path: 'admin',
         element: (
@@ -72,7 +74,7 @@ export const router = createBrowserRouter([
           </RequireRole>
         ),
       },
-      { path: 'demo', element: <VivaDemoPage /> },
+      { path: 'demo', element: <DemoPage /> },
     ],
   },
   { path: '*', element: <NotFoundPage /> },
