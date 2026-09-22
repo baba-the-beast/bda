@@ -2,7 +2,7 @@
 
 **Audited commit:** `4cd9276` (branch `fix/ci-green-and-codebase-audit`)
 **Scope:** `frontend/` — 21 TS/TSX files, 4,801 lines.
-**Status:** Phases 0–2 complete (see §9, §10). Phases 3–7 pending.
+**Status:** Phases 0–4 complete (see §9–§12). Phases 5–7 pending.
 
 ---
 
@@ -262,9 +262,9 @@ remove two render-blocking CDN round trips.
 |---|---|---|---|
 | 1 | Tooling: ESLint flat config, Prettier, strict tsconfig, Vitest, Playwright, MSW, size-limit, CI job | ~12 files | **Done** |
 | 2 | Tokens as CSS custom properties and Tailwind rewire; UI kit + tests | 18 files | **Done** |
-| 3 | Router, `RequireAuth`/`RequireRole`, API layer, generated types, auth refresh, `useTelemetryStream` | ~15 files; replaces `api.ts` | Next |
-| 4 | Chart components on ECharts + accessible table fallback | ~6 files | |
-| 5 | Pages, one domain per commit: overview, datasets, jobs, analysis, voltage, query, stream, platform, admin, demo | 10 commits, the bulk | |
+| 3 | Router, guards, API layer, generated types, auth refresh, `useTelemetryStream` | 15 files | **Done** |
+| 4 | Chart components on ECharts + accessible table fallback | 8 files | **Done** |
+| 5 | Pages, one domain per commit: overview, datasets, jobs, analysis, voltage, query, stream, platform, admin, demo | 10 commits, the bulk | Next |
 | 6 | Accessibility and performance pass: axe, keyboard, Lighthouse, bundle check | cross-cutting | |
 | 7 | Docs: ADR-011, `frontend/README.md`, update ADR-010, `BUG_AUDIT` correction | 4 files | |
 
@@ -448,3 +448,106 @@ Mono are bundled from `@fontsource` using latin-only subsets. The app now satisf
 
 Radix and lucide account for the 10 kB of JS growth. Still less than half the budget, before
 any route splitting exists to spend it.
+
+---
+
+## 11. Phase 3 status - complete
+
+Gates green: typecheck, lint, format, 47 unit, 12 e2e, build, size.
+
+- **Routing.** React Router with lazy route modules, `RequireAuth` (remembers and
+  resumes the requested destination), `RequireRole` on `/admin`, a 404 route, and an
+  error boundary around the outlet.
+- **API layer.** `src/lib/api/` with types generated from the gateway's OpenAPI schema
+  (`npm run gen:api`). Errors parse into an `ApiError` carrying the platform code and
+  `X-Correlation-ID`.
+- **Session.** Access token in memory, refresh token persisted, single-flight refresh
+  with one replay on 401. Single-flight is load-bearing: the backend treats refresh
+  reuse as compromise and revokes every session.
+- **Sign-in.** React Hook Form + Zod; demo credentials only under `VITE_DEMO_MODE=true`.
+- **`useTelemetryStream`.** Ticket auth, connection state, capped backoff, 600-reading
+  ring buffer, animation-frame batching, server-supplied window aggregates.
+
+Two bugs in the new code, both found by the new e2e coverage: `Button asChild` passed
+two children into a Radix `Slot` and crashed the 404 page; and the sign-in redirect
+fired before the post-submit navigate, discarding the requested destination.
+
+`src/api.ts` remains as a documented adapter over the new client, because the legacy
+pages are typed against the hand-written shapes in `src/types.ts` which differ from the
+generated ones in optionality. It is deleted with those pages.
+
+Routing carries 12 entries rather than the target 10: `/pipelines` and `/sub-meters`
+stay separate until Phase 5 folds them into `/jobs` and `/analysis` as tabs.
+
+---
+
+## 12. Phase 4 status - complete
+
+Gates green: typecheck, lint, format, 74 unit (up from 47), 12 e2e, build, size.
+
+### What landed
+
+- **`src/lib/format.ts`.** One module deciding precision per unit (kW to 3dp, kWh to
+  2dp, V to 1dp), dataset instants rendered in **Europe/Paris and labelled CET/CEST**,
+  durations, byte sizes and relative times. Missing values return "Not available"
+  rather than a zero or a dash. 20 tests, including both sides of a daylight-saving
+  boundary.
+- **Chart components**: `TimeSeriesChart` (crosshair tooltip, LTTB sampling, optional
+  dataZoom, optional threshold rule), `BarChart`, `StackedBarChart`, all on a
+  tree-shaken `echarts/core` registration with the canvas renderer.
+- **`ChartFrame`.** Every chart is a `<figure>` with a caption, a one-sentence text
+  description, a legend when there are two or more series (none for one - the title
+  names it), and a **table view holding the same numbers**. A tooltip enhances; the
+  table is the guarantee. An empty result renders an empty state, not a bare axis.
+  A refetch holds the previous render at reduced opacity instead of flashing a
+  skeleton.
+
+### Palette - computed, not chosen
+
+The eight-hue categorical order was validated against this app's own chart surface
+(`#111921`) with the dataviz skill's checker rather than eyeballed:
+
+| Check | Result |
+|---|---|
+| Lightness band | PASS - all 8 within L 0.48-0.67 |
+| Chroma floor | PASS - all 8 >= 0.10 |
+| CVD separation | PASS - worst adjacent pair dE 8.4 under protanopia |
+| Normal-vision floor | PASS - worst adjacent pair dE 19.3 |
+| Contrast vs surface | PASS - all 8 >= 3:1 |
+
+Slots are assigned in fixed order and never cycled; a ninth series folds into "Other"
+rather than taking a generated hue. Bars in a nominal category all take slot 1, since
+bar length already encodes the value.
+
+### The budget was wrong, and the measurement says so
+
+The ECharts chunk budget in §6 was **100 kB brotli, set before measuring**. A throwaway
+probe build gives the real figure:
+
+| Registration | Raw | Gzip |
+|---|---|---|
+| core + line + bar + grid + tooltip | 529.51 kB | 181.17 kB |
+| the above + dataZoom + markLine | 583.95 kB | 198.88 kB |
+
+So the chart layer costs roughly **170 kB brotli**, not 100. Trimming components saves
+18 kB gzip and does not change the picture: `echarts/core` is the floor.
+
+**This is worth a decision, not a silent budget edit.** ECharts was chosen in the brief
+for large time series, and it is genuinely good at that - but the largest series here is
+1,442 daily aggregates and a 600-reading live buffer, neither of which approaches the
+scale that justifies the weight. uPlot is about 15 kB gzip and built for exactly this
+shape of data, at the cost of hand-building bar and stacked-bar forms and the tooltip
+chrome.
+
+Kept ECharts for now: it is the brief's explicit choice, it is built and tested, the
+chunk is lazy so `/overview` and sign-in never pay for it, and `vite.config.ts` now
+splits it into a single shared `charts` chunk cached across every chart route. The
+budget entry lands in `package.json` in Phase 5, when the chunk actually exists - adding
+it now makes `npm run size` report a missing file on every run.
+
+### Not yet verified
+
+The chart components are unit-tested at the frame level - legend, table twin, empty
+state, toggle semantics - but **no chart canvas has been rendered in a browser**,
+because no page imports them yet. That happens in Phase 5, and the e2e suite gains
+per-route chart assertions there.
