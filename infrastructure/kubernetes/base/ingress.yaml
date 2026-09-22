@@ -1,0 +1,64 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: bda-platform-ingress
+  namespace: bda-energy
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "250m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "180"
+spec:
+  tls:
+    - hosts:
+        - energy.bda.internal
+      secretName: bda-tls-cert
+  rules:
+    - host: energy.bda.internal
+      http:
+        paths:
+          - path: /api/v1
+            pathType: Prefix
+            backend:
+              service:
+                name: bda-api-gateway
+                port:
+                  number: 8000
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: bda-frontend
+                port:
+                  number: 80
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: bda-api-gateway-hpa
+  namespace: bda-energy
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: bda-api-gateway
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: bda-api-gateway-pdb
+  namespace: bda-energy
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: bda-api-gateway

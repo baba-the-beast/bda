@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{width:100vw;margin:0;padding:0;background-color:#0b141c;color:#dae3ee;}body{overscroll-behavior:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}@keyframes pulse-dot{0%,100%{opacity:1;}50%{opacity:0.3;}}.animate-pulse-sync{animation:pulse-dot 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "primary": "#66d9cc", "outline": "#869391", "on-primary-container": "#003430", "surface": "#0b141c", "secondary-container": "#0071c7", "background": "#0b141c", "on-secondary-fixed": "#001c38", "on-tertiary-container": "#3c0086", "outline-variant": "#3d4947", "on-surface-variant": "#bcc9c6", "surface-container-high": "#222b33", "secondary-fixed-dim": "#a2c9ff", "surface-container-lowest": "#060f16", "tertiary-container": "#a97cff", "secondary": "#a2c9ff", "on-error-container": "#ffdad6", "inverse-surface": "#dae3ee", "tertiary-fixed-dim": "#d3bbff", "surface-bright": "#313a43", "on-surface": "#dae3ee", "on-error": "#690005", "secondary-fixed": "#d3e4ff", "surface-container": "#182028", "tertiary": "#d3bbff", "inverse-primary": "#006a62", "on-secondary": "#00315c", "surface-dim": "#0b141c", "on-secondary-container": "#f0f4ff", "surface-container-low": "#141c24", "primary-fixed": "#84f5e8", "tertiary-fixed": "#ebddff", "primary-fixed-dim": "#66d9cc", "inverse-on-surface": "#29313a", "on-tertiary-fixed-variant": "#591db3", "on-primary-fixed": "#00201d", "on-primary-fixed-variant": "#005049", "surface-variant": "#2d363e", "error-container": "#93000a", "on-primary": "#003732", "surface-container-highest": "#2d363e", "on-secondary-fixed-variant": "#004882", "on-tertiary": "#3f008d", "surface-tint": "#66d9cc", "on-tertiary-fixed": "#250059", "error": "#ffb4ab", "on-background": "#dae3ee", "primary-container": "#26a69a" }, borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, spacing: { "space-lg": "0.75rem", "space-xs": "0.25rem", "space-sm": "0.375rem", "gutter": "0.5rem", "margin": "0.75rem", "space-xl": "1rem", "space-md": "0.5rem" }, fontFamily: { "label-lg": ["JetBrains Mono"], "label-sm": ["JetBrains Mono"], "telemetry-unit": ["JetBrains Mono"], "telemetry-display": ["JetBrains Mono"], "label-md": ["JetBrains Mono"], "body-lg": ["Inter"], "headline-lg": ["Inter"], "body-md": ["Inter"], "headline-sm": ["Inter"], "body-sm": ["Inter"], "headline-md": ["Inter"] }, fontSize: { "label-lg": ["0.875rem", { "lineHeight": "1.25rem", "letterSpacing": "0.02em", "fontWeight": "500" }], "label-sm": ["0.6875rem", { "lineHeight": "0.875rem", "letterSpacing": "0.03em", "fontWeight": "400" }], "telemetry-unit": ["0.75rem", { "lineHeight": "1rem", "letterSpacing": "0.05em", "fontWeight": "400" }], "telemetry-display": ["1.75rem", { "lineHeight": "2rem", "letterSpacing": "-0.02em", "fontWeight": "600" }], "label-md": ["0.75rem", { "lineHeight": "1rem", "letterSpacing": "0.025em", "fontWeight": "500" }], "body-lg": ["0.875rem", { "lineHeight": "1.25rem", "fontWeight": "400" }], "headline-lg": ["1.5rem", { "lineHeight": "2rem", "letterSpacing": "-0.015em", "fontWeight": "600" }], "body-md": ["0.8125rem", { "lineHeight": "1.125rem", "fontWeight": "400" }], "headline-sm": ["1rem", { "lineHeight": "1.375rem", "letterSpacing": "-0.005em", "fontWeight": "600" }], "body-sm": ["0.75rem", { "lineHeight": "1rem", "fontWeight": "400" }], "headline-md": ["1.25rem", { "lineHeight": "1.75rem", "letterSpacing": "-0.01em", "fontWeight": "600" }] } } } };</script><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface font-body-md text-body-md text-on-surface flex flex-col min-h-screen"><header class="fixed top-0 w-full z-50 pt-safe bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-16 px-space-lg flex items-center justify-between gap-space-md"><div class="flex items-center gap-space-md min-w-0"><img alt="VoltPulse Industrial Telemetry Logo" class="h-8 w-auto object-contain flex-shrink-0" src="https://lh3.googleusercontent.com/aida/AEtjO1WRWtkwbw8bblYuHXQFo4up25Ekt3elCIynDgA91DI0OHLelASokkWq8sherNKAjxGXzA6cxLlkVeaoyRck0WwzM9zfCSLbYcXv2jXeyFbYj3U7_gmTuvbuCjlRUwlxRu5ya2g-f6LKJ6nlvXgvXpPAfYB4rOAi4LYBd3ryDgmxhslvZw6P8ul3naPR9PyF_uZn9RvvTwg9No2IvHmA4iHC9a1_gi4eVyLULnsvk0k046GNRTqsU75LbRym"/><div class="flex flex-col min-w-0"><div class="flex items-center gap-space-xs"><span class="font-label-sm text-label-sm text-primary uppercase tracking-wider font-semibold truncate">SUBSTATION // TX-DEEP-DIVE</span><div class="flex items-center gap-1 px-1.5 py-0.5 rounded bg-surface-container-high"><span class="w-1.5 h-1.5 rounded-full bg-[#2EA043] animate-pulse-sync"></span><span class="font-label-sm text-label-sm text-[#2EA043] font-medium tracking-tight">LIVE 60.02Hz</span></div></div><div class="flex items-center gap-space-xs"><span class="font-headline-sm text-headline-sm text-on-surface uppercase tracking-tight truncate">Substation</span></div></div></div><div class="flex items-center gap-space-sm flex-shrink-0"><div class="hidden sm:flex flex-col items-end px-2 py-0.5 rounded bg-surface-container-low"><span class="font-label-sm text-label-sm text-on-surface-variant leading-none">INGEST</span><span class="font-label-md text-label-md text-secondary font-medium leading-tight">14.8k evt/s</span></div><div class="flex items-center gap-1 px-2 py-1 rounded bg-surface-container"><span class="material-symbols-outlined text-primary text-[16px]">warning</span><span class="font-label-sm text-label-sm text-on-surface font-medium">0 CRIT</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex flex-col relative w-full pt-16 pb-20 bg-surface flex-1 min-h-screen"><div class="flex flex-col w-full pb-6 space-y-space-md">
+<!-- 1. SUBSTATION UNIT METADATA STRIP -->
+<div class="bg-surface-container-low px-space-md py-space-sm flex flex-col gap-1.5 shadow-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5 min-w-0">
+<span class="material-symbols-outlined text-primary text-[16px]">domain</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider truncate">SUBSTATION NORTH-08 // BAY 3</span>
+</div>
+<span class="font-label-sm text-label-sm px-1.5 py-0.2 bg-[#2EA043]/15 text-[#2EA043] flex items-center gap-1">
+<span class="w-1.5 h-1.5 bg-[#2EA043]"></span>
+        ENERGIZED
+      </span>
+</div>
+<div class="flex items-baseline justify-between pt-0.5">
+<div class="flex items-baseline gap-2">
+<span class="font-headline-md text-headline-md text-on-surface tracking-tight">TX-04B</span>
+<span class="font-label-sm text-label-sm text-secondary tracking-tight">25 MVA • 33/11.4kV Dyn11</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-medium">184d 14h UP</span>
+</div>
+<!-- Telemetry Bus Protocol / Ping Status -->
+<div class="grid grid-cols-2 gap-2 pt-1 mt-0.5 bg-surface-container-lowest px-2 py-1.5">
+<div class="flex items-center gap-1.5 min-w-0">
+<span class="material-symbols-outlined text-outline text-[14px]">settings_ethernet</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant truncate">IEC 61850 / DNP3</span>
+</div>
+<div class="flex items-center justify-end gap-1.5">
+<span class="w-1 h-1 rounded-full bg-[#2EA043] animate-pulse-sync"></span>
+<span class="font-label-sm text-label-sm text-[#2EA043]">POLL: 500ms (100%)</span>
+</div>
+</div>
+</div>
+<!-- 2. PRIMARY ELECTRICAL RATINGS & CURRENT LOADING -->
+<div class="bg-surface-container px-space-md py-space-sm space-y-space-sm shadow-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-primary text-[18px]">speed</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider font-medium">MVA Loading Ratio</span>
+</div>
+<div class="flex items-baseline gap-1">
+<span class="font-telemetry-display text-telemetry-display text-primary leading-none">76.4</span>
+<span class="font-telemetry-unit text-telemetry-unit text-on-surface-variant">%</span>
+</div>
+</div>
+<!-- Bar Graph Display -->
+<div class="space-y-1">
+<div class="w-full h-2.5 bg-surface-container-lowest flex p-0.5">
+<div class="h-full bg-primary-container" style="width: 76.4%;"></div>
+<div class="h-full bg-surface-variant flex-1"></div>
+</div>
+<div class="flex justify-between font-label-sm text-label-sm text-outline">
+<span>0 MVA</span>
+<span class="text-on-surface font-semibold">19.10 MVA APP</span>
+<span>25.00 MVA MAX</span>
+</div>
+</div>
+<!-- Power & Phase Vector Grid -->
+<div class="grid grid-cols-2 gap-space-xs pt-1">
+<div class="bg-surface-container-low p-2 flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-outline uppercase">Active (P)</span>
+<span class="font-label-sm text-label-sm text-primary">MW</span>
+</div>
+<span class="font-label-lg text-label-lg text-on-surface mt-1">18.24</span>
+<span class="font-label-sm text-label-sm text-outline mt-0.5">PF: 0.953 LAG</span>
+</div>
+<div class="bg-surface-container-low p-2 flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-outline uppercase">Reactive (Q)</span>
+<span class="font-label-sm text-label-sm text-secondary">MVAR</span>
+</div>
+<span class="font-label-lg text-label-lg text-on-surface mt-1">5.82</span>
+<span class="font-label-sm text-label-sm text-outline mt-0.5">VArh: 4.88 kVar</span>
+</div>
+</div>
+<!-- Terminal Voltages & Currents Matrix -->
+<div class="bg-surface-container-lowest p-2 space-y-1.5">
+<div class="flex items-center justify-between font-label-sm text-label-sm text-outline pb-1">
+<span>TERMINAL BUS</span>
+<span class="text-right">LINE VOLTAGE / CURRENT</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-on-surface flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 bg-[#26A69A]"></span>Primary (HV)
+        </span>
+<div class="font-label-sm text-label-sm text-right space-x-2">
+<span class="text-on-surface font-medium">33.12 kV</span>
+<span class="text-on-surface-variant font-mono">334.2 A</span>
+</div>
+</div>
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-on-surface flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 bg-[#58A6FF]"></span>Secondary (LV)
+        </span>
+<div class="font-label-sm text-label-sm text-right space-x-2">
+<span class="text-on-surface font-medium">11.38 kV</span>
+<span class="text-on-surface-variant font-mono">968.5 A</span>
+</div>
+</div>
+</div>
+</div>
+<!-- 3. THERMAL DYNAMICS & COOLING STATE -->
+<div class="bg-surface-container px-space-md py-space-sm space-y-space-sm shadow-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-tertiary text-[18px]">thermostat</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider font-medium">Winding &amp; Core Thermal Profile</span>
+</div>
+<span class="font-label-sm text-label-sm px-1.5 py-0.2 bg-primary/10 text-primary uppercase">ONAF STAGE 1</span>
+</div>
+<!-- Temperature Sensor Gauges -->
+<div class="grid grid-cols-3 gap-1.5">
+<div class="bg-surface-container-low p-2">
+<span class="font-label-sm text-label-sm text-outline block truncate">TOP OIL</span>
+<div class="flex items-baseline gap-0.5 mt-0.5">
+<span class="font-label-lg text-label-lg text-on-surface">64.8</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">°C</span>
+</div>
+<span class="font-label-sm text-label-sm text-[#2EA043] block mt-0.5">LIMIT 85°</span>
+</div>
+<div class="bg-surface-container-low p-2">
+<span class="font-label-sm text-label-sm text-outline block truncate">HV WINDING</span>
+<div class="flex items-baseline gap-0.5 mt-0.5">
+<span class="font-label-lg text-label-lg text-on-surface">78.2</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">°C</span>
+</div>
+<span class="font-label-sm text-label-sm text-[#2EA043] block mt-0.5">HOTSPOT OK</span>
+</div>
+<div class="bg-surface-container-low p-2">
+<span class="font-label-sm text-label-sm text-outline block truncate">LV WINDING</span>
+<div class="flex items-baseline gap-0.5 mt-0.5">
+<span class="font-label-lg text-label-lg text-on-surface">81.4</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">°C</span>
+</div>
+<span class="font-label-sm text-label-sm text-secondary block mt-0.5">IEEE C57.91</span>
+</div>
+</div>
+<!-- Cooling Sub-Bank Micro Telemetry -->
+<div class="bg-surface-container-lowest p-2 flex items-center justify-between font-label-sm text-label-sm">
+<div class="flex items-center gap-2">
+<span class="text-on-surface-variant">Ambient: 28.5°C</span>
+<span class="text-outline">|</span>
+<span class="text-primary font-medium">ΔT: +36.3°C Rise</span>
+</div>
+<div class="flex items-center gap-1 text-[#2EA043]">
+<span class="material-symbols-outlined text-[14px]">mode_fan</span>
+<span class="font-medium">4/8 FANS RUNNING</span>
+</div>
+</div>
+</div>
+<!-- 4. ON-LOAD TAP CHANGER (OLTC) -->
+<div class="bg-surface-container px-space-md py-space-sm space-y-space-sm shadow-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-secondary text-[18px]">tune</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider font-medium">Tap Changer Mechanism (OLTC)</span>
+</div>
+<span class="font-label-sm text-label-sm text-secondary bg-secondary/10 px-1.5 py-0.2">AVR AUTO</span>
+</div>
+<!-- Tap Position Matrix -->
+<div class="bg-surface-container-low p-2 flex items-center justify-between">
+<div>
+<span class="font-label-sm text-label-sm text-outline uppercase block">Current Tap</span>
+<div class="flex items-baseline gap-1.5 mt-0.5">
+<span class="font-telemetry-display text-telemetry-display text-on-surface leading-none">07</span>
+<span class="font-label-md text-label-md text-on-surface-variant">/ 17 Steps</span>
+</div>
+</div>
+<div class="text-right">
+<span class="font-label-sm text-label-sm text-outline uppercase block">Voltage Offset</span>
+<span class="font-label-lg text-label-lg text-secondary block mt-0.5">-2.50 %</span>
+<span class="font-label-sm text-label-sm text-outline">Nominal: Step 9</span>
+</div>
+</div>
+<!-- Diverter Switch Details -->
+<div class="grid grid-cols-2 gap-2 text-label-sm font-label-sm">
+<div class="bg-surface-container-lowest p-2">
+<span class="text-outline block">TODAY OPS</span>
+<span class="text-on-surface font-medium text-label-md font-label-md mt-0.5 block">14 cycles</span>
+<span class="text-outline mt-0.5 block">Lifetime: 48,291</span>
+</div>
+<div class="bg-surface-container-lowest p-2">
+<span class="text-outline block">OIL DIFF PRESSURE</span>
+<span class="text-on-surface font-medium text-label-md font-label-md mt-0.5 block">0.04 bar</span>
+<span class="text-[#2EA043] mt-0.5 block">Mechanism: Healthy</span>
+</div>
+</div>
+</div>
+<!-- 5. DISSOLVED GAS ANALYSIS (DGA) & DIELECTRIC MATRIX -->
+<div class="bg-surface-container px-space-md py-space-sm space-y-space-sm shadow-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-primary text-[18px]">science</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider font-medium">Dissolved Gas &amp; Dielectric Health</span>
+</div>
+<span class="font-label-sm text-label-sm text-[#2EA043] flex items-center gap-1">
+<span class="w-1.5 h-1.5 bg-[#2EA043]"></span>IEEE PASS
+      </span>
+</div>
+<!-- DGA Readings Table -->
+<div class="space-y-1">
+<div class="grid grid-cols-4 bg-surface-container-lowest p-1.5 font-label-sm text-label-sm">
+<span class="text-outline">GAS</span>
+<span class="text-right text-outline">PPM</span>
+<span class="text-right text-outline">LIM</span>
+<span class="text-right text-outline">STATUS</span>
+</div>
+<div class="grid grid-cols-4 bg-surface-container-low px-2 py-1.5 font-label-sm text-label-sm items-center">
+<span class="text-on-surface font-medium">H₂ (Hydrogen)</span>
+<span class="text-right text-on-surface font-mono">24</span>
+<span class="text-right text-outline font-mono">&lt;100</span>
+<span class="text-right text-[#2EA043] font-medium">NOMINAL</span>
+</div>
+<div class="grid grid-cols-4 bg-surface-container-low px-2 py-1.5 font-label-sm text-label-sm items-center">
+<span class="text-on-surface font-medium">C₂H₂ (Acetylene)</span>
+<span class="text-right text-[#2EA043] font-mono">&lt;0.5</span>
+<span class="text-right text-outline font-mono">&lt;2.0</span>
+<span class="text-right text-[#2EA043] font-medium">NO ARC</span>
+</div>
+<div class="grid grid-cols-4 bg-surface-container-low px-2 py-1.5 font-label-sm text-label-sm items-center">
+<span class="text-on-surface font-medium">CH₄ (Methane)</span>
+<span class="text-right text-on-surface font-mono">18</span>
+<span class="text-right text-outline font-mono">&lt;120</span>
+<span class="text-right text-[#2EA043] font-medium">NOMINAL</span>
+</div>
+<div class="grid grid-cols-4 bg-surface-container-low px-2 py-1.5 font-label-sm text-label-sm items-center">
+<span class="text-on-surface font-medium">CO (Carbon Monoxide)</span>
+<span class="text-right text-on-surface font-mono">210</span>
+<span class="text-right text-outline font-mono">&lt;500</span>
+<span class="text-right text-[#2EA043] font-medium">NOMINAL</span>
+</div>
+</div>
+<!-- Oil Moisture and Dielectric Strength -->
+<div class="grid grid-cols-2 gap-2 pt-1 font-label-sm text-label-sm">
+<div class="bg-surface-container-lowest p-2">
+<span class="text-outline block">OIL MOISTURE</span>
+<span class="text-on-surface font-label-md text-label-md font-medium mt-0.5 block">12 ppm</span>
+<span class="text-[#2EA043]">Dry • BDV 68 kV</span>
+</div>
+<div class="bg-surface-container-lowest p-2">
+<span class="text-outline block">BUCHHOLZ RELAY</span>
+<span class="text-on-surface font-label-md text-label-md font-medium mt-0.5 block">ARMED / NORMAL</span>
+<span class="text-outline">Chamber: 0 cm³</span>
+</div>
+</div>
+</div>
+<!-- 6. SWITCHGEAR & PROTECTION MATRIX -->
+<div class="bg-surface-container px-space-md py-space-sm space-y-space-sm shadow-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-primary text-[18px]">verified_user</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider font-medium">Bay Breakers &amp; Relay Arming</span>
+</div>
+<span class="font-label-sm text-label-sm text-[#2EA043] bg-[#2EA043]/15 px-1.5 py-0.2">TRIP LOOPS ACTIVE</span>
+</div>
+<div class="space-y-1.5">
+<!-- Breakers -->
+<div class="grid grid-cols-2 gap-2">
+<div class="bg-surface-container-low p-2">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-outline">HV BREAKER</span>
+<span class="w-2 h-2 bg-[#2EA043]"></span>
+</div>
+<span class="font-label-md text-label-md text-on-surface font-medium mt-1 block">VCB-33-04</span>
+<span class="font-label-sm text-label-sm text-[#2EA043]">CLOSED [Armed]</span>
+</div>
+<div class="bg-surface-container-low p-2">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-outline">LV BREAKER</span>
+<span class="w-2 h-2 bg-[#2EA043]"></span>
+</div>
+<span class="font-label-md text-label-md text-on-surface font-medium mt-1 block">GCB-11-04</span>
+<span class="font-label-sm text-label-sm text-[#2EA043]">CLOSED [Armed]</span>
+</div>
+</div>
+<!-- ANSI 87T & SEL Relays -->
+<div class="bg-surface-container-lowest p-2 space-y-1 font-label-sm text-label-sm">
+<div class="flex justify-between items-center">
+<span class="text-on-surface font-medium">ANSI 87T Differential Protection</span>
+<span class="text-[#2EA043]">ARMED</span>
+</div>
+<div class="flex justify-between text-outline text-[11px]">
+<span>Restraint Current: 28.4 A</span>
+<span>Differential: 0.08 A (Trip: 1.20 A)</span>
+</div>
+<div class="flex justify-between items-center pt-1 mt-1 bg-surface-container-low p-1 px-1.5">
+<span class="text-on-surface">SEL-751 Feeder Relay</span>
+<span class="text-secondary font-mono text-right">Curve: IEEE V-INVERSE</span>
+</div>
+</div>
+</div>
+</div>
+<!-- 7. OPERATIONAL CONTROLS & COMMAND ACTIONS -->
+<div class="px-space-md pt-1 space-y-2">
+<button class="w-full h-9 bg-primary text-on-primary font-body-sm font-semibold flex items-center justify-center gap-2 tracking-wide uppercase shadow-sm active:opacity-90" type="button">
+<span class="material-symbols-outlined text-[18px]">build</span>
+<span>Switch to Manual Tap Control</span>
+</button>
+<div class="grid grid-cols-2 gap-2">
+<button class="h-8 bg-surface-container-high text-on-surface font-label-sm text-label-sm flex items-center justify-center gap-1.5 active:bg-surface-variant" type="button">
+<span class="material-symbols-outlined text-[16px] text-primary">download</span>
+<span>Export DGA</span>
+</button>
+<button class="h-8 bg-surface-container-high text-on-surface font-label-sm text-label-sm flex items-center justify-center gap-1.5 active:bg-surface-variant" type="button">
+<span class="material-symbols-outlined text-[16px] text-secondary">assignment_turned_in</span>
+<span>Field Inspection</span>
+</button>
+</div>
+</div>
+</div>
+<script>
+  // Simple micro-interaction for manual control confirmation trigger
+  (function() {
+    const manualBtn = document.querySelector('button.bg-primary');
+    if (manualBtn) {
+      manualBtn.addEventListener('click', function() {
+        const confirmed = confirm("AUTHORIZATION REQUIRED: Divert Tap Regulation from AVR to Field Manual Mode?");
+        if (confirmed) {
+          manualBtn.classList.remove('bg-primary', 'text-on-primary');
+          manualBtn.classList.add('bg-secondary-container', 'text-on-secondary-container');
+          manualBtn.innerHTML = '<span class="material-symbols-outlined text-[18px]">lock_open</span><span>TAP CONTROLLER: MANUAL ACQUIRED</span>';
+        }
+      });
+    }
+  })();
+</script></main><nav class="fixed bottom-0 w-full z-50 pb-safe bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]" data-active-classes="text-primary bg-surface-container-high"><div class="h-16 px-gutter grid grid-cols-5 items-center justify-items-stretch"><a class="flex flex-col items-center justify-center h-12 rounded text-on-surface-variant hover:text-on-surface transition-colors min-h-[44px]" data-path="telemetry" href="#"><span class="material-symbols-outlined text-[20px]">vital_signs</span><span class="font-label-sm text-label-sm mt-0.5 truncate tracking-tight">Telemetry</span></a><a class="flex flex-col items-center justify-center h-12 rounded text-on-surface-variant hover:text-on-surface transition-colors min-h-[44px]" data-path="load-profile" href="#"><span class="material-symbols-outlined text-[20px]">show_chart</span><span class="font-label-sm text-label-sm mt-0.5 truncate tracking-tight">Load Profile</span></a><a aria-current="page" class="flex flex-col items-center justify-center h-12 rounded transition-colors min-h-[44px] text-primary bg-surface-container-high" data-path="substation" href="#"><span class="material-symbols-outlined text-[20px]">electric_bolt</span><span class="font-label-sm text-label-sm mt-0.5 truncate tracking-tight">Substation</span></a><a class="flex flex-col items-center justify-center h-12 rounded text-on-surface-variant hover:text-on-surface transition-colors min-h-[44px]" data-path="sub-meters" href="#"><span class="material-symbols-outlined text-[20px]">account_tree</span><span class="font-label-sm text-label-sm mt-0.5 truncate tracking-tight">Sub-Meters</span></a><a class="flex flex-col items-center justify-center h-12 rounded text-on-surface-variant hover:text-on-surface transition-colors min-h-[44px]" data-path="pipelines" href="#"><span class="material-symbols-outlined text-[20px]">terminal</span><span class="font-label-sm text-label-sm mt-0.5 truncate tracking-tight">Pipelines</span></a></div></nav></body></html>

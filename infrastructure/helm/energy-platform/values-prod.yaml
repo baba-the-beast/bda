@@ -1,0 +1,22 @@
+# Production Profile - High Availability & Security Hardened
+global:
+  environment: production
+  tlsEnabled: true
+
+gateway:
+  replicaCount: 3
+
+frontend:
+  replicaCount: 3
+
+analytics:
+  replicaCount: 3
+
+mongodb:
+  persistence:
+    size: 100Gi
+
+ingress:
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"

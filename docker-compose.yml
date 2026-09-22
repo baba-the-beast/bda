@@ -1,0 +1,251 @@
+services:
+  # ---------------------------------------------------------------------------
+  # Persistence & Big Data Infrastructure Layer
+  # ---------------------------------------------------------------------------
+  mongodb:
+    image: mongo:7.0
+    container_name: bda-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: root_master_pass_2026
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+      - ./data-platform/mongodb/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+    networks:
+      - data-net
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: bda-redis
+    restart: unless-stopped
+    command: redis-server --requirepass redis_secure_pass_2026
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - data-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "redis_secure_pass_2026", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: bda-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - data-net
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: bda-kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - data-net
+
+  # ---------------------------------------------------------------------------
+  # Application Microservices
+  # ---------------------------------------------------------------------------
+  auth-service:
+    build:
+      context: .
+      dockerfile: services/auth-service/Dockerfile
+    container_name: bda-auth-service
+    restart: unless-stopped
+    environment:
+      MONGO_URI: mongodb://bda_app:bda_secure_pass_2026@mongodb:27017/bda_energy?authSource=admin
+      JWT_SECRET: super-secret-production-key-must-be-rotated-in-production-env-32bytes
+      LOG_LEVEL: INFO
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - backend-net
+      - data-net
+
+  dataset-service:
+    build:
+      context: .
+      dockerfile: services/dataset-service/Dockerfile
+    container_name: bda-dataset-service
+    restart: unless-stopped
+    environment:
+      MONGO_URI: mongodb://bda_app:bda_secure_pass_2026@mongodb:27017/bda_energy?authSource=admin
+      JWT_SECRET: super-secret-production-key-must-be-rotated-in-production-env-32bytes
+      LOCAL_HDFS_ROOT: /app/data/hdfs
+    volumes:
+      - hdfs_data:/app/data/hdfs
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - backend-net
+      - data-net
+
+  preprocessing-service:
+    build:
+      context: .
+      dockerfile: services/preprocessing-service/Dockerfile
+    container_name: bda-preprocessing-service
+    restart: unless-stopped
+    environment:
+      MONGO_URI: mongodb://bda_app:bda_secure_pass_2026@mongodb:27017/bda_energy?authSource=admin
+      JWT_SECRET: super-secret-production-key-must-be-rotated-in-production-env-32bytes
+      LOCAL_HDFS_ROOT: /app/data/hdfs
+    volumes:
+      - hdfs_data:/app/data/hdfs
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - backend-net
+      - data-net
+
+  job-orchestrator:
+    build:
+      context: .
+      dockerfile: services/job-orchestrator/Dockerfile
+    container_name: bda-job-orchestrator
+    restart: unless-stopped
+    environment:
+      MONGO_URI: mongodb://bda_app:bda_secure_pass_2026@mongodb:27017/bda_energy?authSource=admin
+      JWT_SECRET: super-secret-production-key-must-be-rotated-in-production-env-32bytes
+      LOCAL_HDFS_ROOT: /app/data/hdfs
+      HADOOP_MODE: local
+    volumes:
+      - hdfs_data:/app/data/hdfs
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - backend-net
+      - data-net
+
+  hive-query-service:
+    build:
+      context: .
+      dockerfile: services/hive-query-service/Dockerfile
+    container_name: bda-hive-query-service
+    restart: unless-stopped
+    environment:
+      MONGO_URI: mongodb://bda_app:bda_secure_pass_2026@mongodb:27017/bda_energy?authSource=admin
+      JWT_SECRET: super-secret-production-key-must-be-rotated-in-production-env-32bytes
+      LOCAL_HDFS_ROOT: /app/data/hdfs
+    volumes:
+      - hdfs_data:/app/data/hdfs
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - backend-net
+      - data-net
+
+  analytics-service:
+    build:
+      context: .
+      dockerfile: services/analytics-service/Dockerfile
+    container_name: bda-analytics-service
+    restart: unless-stopped
+    environment:
+      MONGO_URI: mongodb://bda_app:bda_secure_pass_2026@mongodb:27017/bda_energy?authSource=admin
+      JWT_SECRET: super-secret-production-key-must-be-rotated-in-production-env-32bytes
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - backend-net
+      - data-net
+
+  stream-service:
+    build:
+      context: .
+      dockerfile: services/stream-service/Dockerfile
+    container_name: bda-stream-service
+    restart: unless-stopped
+    environment:
+      MONGO_URI: mongodb://bda_app:bda_secure_pass_2026@mongodb:27017/bda_energy?authSource=admin
+      JWT_SECRET: super-secret-production-key-must-be-rotated-in-production-env-32bytes
+      LOCAL_HDFS_ROOT: /app/data/hdfs
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+    volumes:
+      - hdfs_data:/app/data/hdfs
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - backend-net
+      - data-net
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: services/api-gateway/Dockerfile
+    container_name: bda-api-gateway
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      AUTH_SERVICE_URL: http://auth-service:8001
+      DATASET_SERVICE_URL: http://dataset-service:8002
+      PREPROCESSING_SERVICE_URL: http://preprocessing-service:8003
+      JOB_ORCHESTRATOR_URL: http://job-orchestrator:8004
+      HIVE_QUERY_SERVICE_URL: http://hive-query-service:8005
+      ANALYTICS_SERVICE_URL: http://analytics-service:8006
+      STREAM_SERVICE_URL: http://stream-service:8007
+      JWT_SECRET: super-secret-production-key-must-be-rotated-in-production-env-32bytes
+    depends_on:
+      - auth-service
+      - dataset-service
+      - job-orchestrator
+      - analytics-service
+    networks:
+      - frontend-net
+      - backend-net
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: bda-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - api-gateway
+    networks:
+      - frontend-net
+
+networks:
+  frontend-net:
+    driver: bridge
+  backend-net:
+    driver: bridge
+  data-net:
+    driver: bridge
+
+volumes:
+  mongo_data:
+  redis_data:
+  hdfs_data:

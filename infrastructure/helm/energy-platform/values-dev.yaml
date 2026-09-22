@@ -1,0 +1,27 @@
+# Development Profile - Lightweight Single Replica
+global:
+  environment: development
+  tlsEnabled: false
+
+gateway:
+  replicaCount: 1
+  resources:
+    limits:
+      cpu: 250m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+frontend:
+  replicaCount: 1
+
+analytics:
+  replicaCount: 1
+
+mongodb:
+  persistence:
+    size: 5Gi
+
+ingress:
+  className: nginx

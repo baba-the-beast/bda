@@ -1,0 +1,15 @@
+{
+  "dataset_name": "UCI Individual Household Electric Power Consumption",
+  "file_name": "household_power_consumption.txt",
+  "file_path": "D:\\bda\\data\\raw\\household_power_consumption.txt",
+  "size_bytes": 132960755,
+  "sha256_checksum": "4259c9d7ece5dbee9ab8d53682baac68d791c864f0f64a52b4043cb3b90894b7",
+  "total_lines": 2075260,
+  "header": "Date;Time;Global_active_power;Global_reactive_power;Voltage;Global_intensity;Sub_metering_1;Sub_metering_2;Sub_metering_3",
+  "data_rows": 2075259,
+  "missing_rows_count": 25979,
+  "first_record": "16/12/2006;17:24:00;4.216;0.418;234.840;18.400;0.000;1.000;17.000",
+  "last_record": "26/11/2010;21:02:00;0.932;0.000;239.550;3.800;0.000;0.000;0.000",
+  "verified_at": "2026-09-18T06:55:08.787282+00:00",
+  "is_verified": true
+}

@@ -1,0 +1,92 @@
+# =============================================================================
+# Render Blueprint Specification for Big Data Energy Consumption Analytics Platform
+# Three-Service Architecture: frontend, backend-api, bda-processor
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # 1. Frontend Web Service (React 18 + Vite + TailwindCSS)
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: bda-energy-frontend
+    env: static
+    plan: starter
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: frontend/dist
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: bda-backend-api
+          property: host
+    headers:
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: X-XSS-Protection
+        value: 1; mode=block
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+
+  # ---------------------------------------------------------------------------
+  # 2. Backend API Web Service (FastAPI REST Gateway)
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: bda-backend-api
+    env: python
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: python scripts/dev_server.py
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: ENVIRONMENT
+        value: production
+      - key: BDA_MODE
+        value: RENDER_LITE
+      - key: DATA_STORE_MODE
+        value: mongodb
+      - key: ENABLE_DEMO_SEED
+        value: "false"
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: LOCAL_HDFS_ROOT
+        value: /opt/render/project/src/data/hdfs
+
+  # ---------------------------------------------------------------------------
+  # 3. BDA Processor Background Worker (Chunked Preprocessing & Batch Analytics)
+  # ---------------------------------------------------------------------------
+  - type: worker
+    name: bda-processor
+    env: python
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: python scripts/processor_daemon.py
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: BDA_MODE
+        value: RENDER_LITE
+      - key: DATA_STORE_MODE
+        value: mongodb
+      - key: MONGO_URI
+        fromService:
+          type: web
+          name: bda-backend-api
+          envVarKey: MONGO_URI
+      - key: JWT_SECRET
+        fromService:
+          type: web
+          name: bda-backend-api
+          envVarKey: JWT_SECRET
+      - key: LOCAL_HDFS_ROOT
+        value: /opt/render/project/src/data/hdfs

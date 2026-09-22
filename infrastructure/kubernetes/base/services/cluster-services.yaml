@@ -1,0 +1,83 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: bda-api-gateway
+  namespace: bda-energy
+spec:
+  type: ClusterIP
+  selector:
+    app: bda-api-gateway
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bda-frontend
+  namespace: bda-energy
+spec:
+  type: ClusterIP
+  selector:
+    app: bda-frontend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bda-auth-service
+  namespace: bda-energy
+spec:
+  type: ClusterIP
+  selector:
+    app: bda-auth-service
+  ports:
+    - protocol: TCP
+      port: 8001
+      targetPort: 8001
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bda-analytics-service
+  namespace: bda-energy
+spec:
+  type: ClusterIP
+  selector:
+    app: bda-analytics-service
+  ports:
+    - protocol: TCP
+      port: 8006
+      targetPort: 8006
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bda-mongodb
+  namespace: bda-energy
+spec:
+  type: ClusterIP
+  selector:
+    app: bda-mongodb
+  ports:
+    - protocol: TCP
+      port: 27017
+      targetPort: 27017
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bda-redis
+  namespace: bda-energy
+spec:
+  type: ClusterIP
+  selector:
+    app: bda-redis
+  ports:
+    - protocol: TCP
+      port: 6379
+      targetPort: 6379

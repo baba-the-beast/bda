@@ -1,0 +1,82 @@
+global:
+  environment: production
+  bdaMode: FULL_BDA
+  domain: energy.bda.internal
+  tlsEnabled: true
+
+gateway:
+  replicaCount: 2
+  image:
+    repository: bda/api-gateway
+    tag: 1.0.0
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8000
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+frontend:
+  replicaCount: 2
+  image:
+    repository: bda/frontend
+    tag: 1.0.0
+  service:
+    type: ClusterIP
+    port: 80
+  resources:
+    limits:
+      cpu: 250m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+analytics:
+  replicaCount: 2
+  image:
+    repository: bda/analytics-service
+    tag: 1.0.0
+  service:
+    type: ClusterIP
+    port: 8006
+  resources:
+    limits:
+      cpu: 800m
+      memory: 1Gi
+    requests:
+      cpu: 150m
+      memory: 256Mi
+
+mongodb:
+  enabled: true
+  persistence:
+    enabled: true
+    size: 20Gi
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+
+redis:
+  enabled: true
+  persistence:
+    enabled: true
+    size: 5Gi
+
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: energy.bda.internal
+      paths:
+        - path: /
+          pathType: Prefix

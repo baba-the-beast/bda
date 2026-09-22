@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: bda-energy
+  labels:
+    name: bda-energy
+    app.kubernetes.io/part-of: energy-analytics-platform

@@ -1,0 +1,39 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - "alerts.yaml"
+
+scrape_configs:
+  - job_name: "bda-api-gateway"
+    static_configs:
+      - targets: ["api-gateway:8000"]
+
+  - job_name: "bda-auth-service"
+    static_configs:
+      - targets: ["auth-service:8001"]
+
+  - job_name: "bda-dataset-service"
+    static_configs:
+      - targets: ["dataset-service:8002"]
+
+  - job_name: "bda-preprocessing-service"
+    static_configs:
+      - targets: ["preprocessing-service:8003"]
+
+  - job_name: "bda-job-orchestrator"
+    static_configs:
+      - targets: ["job-orchestrator:8004"]
+
+  - job_name: "bda-hive-query-service"
+    static_configs:
+      - targets: ["hive-query-service:8005"]
+
+  - job_name: "bda-analytics-service"
+    static_configs:
+      - targets: ["analytics-service:8006"]
+
+  - job_name: "bda-stream-service"
+    static_configs:
+      - targets: ["stream-service:8007"]

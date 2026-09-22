@@ -1,0 +1,47 @@
+groups:
+  - name: bda_energy_alerts
+    rules:
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Microservice {{ $labels.job }} is down"
+          description: "Service has failed health scrape for more than 1 minute."
+
+      - alert: HighHttp5xxRate
+        expr: rate(gateway_requests_total{status=~"5.."}[5m]) / rate(gateway_requests_total[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High HTTP 5xx error rate on API Gateway"
+          description: "More than 5% of incoming requests are failing with 5xx status codes."
+
+      - alert: HighApiLatency
+        expr: histogram_quantile(0.95, sum(rate(gateway_request_duration_seconds_bucket[5m])) by (le)) > 2.0
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High P95 API Latency (>2s)"
+          description: "API Gateway 95th percentile response latency has exceeded 2 seconds."
+
+      - alert: AuthFailureSpike
+        expr: rate(auth_failures_total[5m]) > 5
+        for: 1m
+        labels:
+          severity: high
+        annotations:
+          summary: "Spike in failed authentication attempts"
+          description: "Potential brute force attempt detected: auth failures > 5/sec."
+
+      - alert: StreamingPipelineStalled
+        expr: rate(stream_events_emitted_total[5m]) == 0 and stream_active_sse_clients > 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Active stream pipeline is not emitting events"
+          description: "Clients are connected to the live feed but no events are being produced."

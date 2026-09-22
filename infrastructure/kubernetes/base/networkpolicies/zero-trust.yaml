@@ -1,0 +1,124 @@
+# Default Deny All Ingress and Egress NetworkPolicy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: bda-energy
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+---
+# Allow API Gateway Ingress from Ingress Controller / Internet
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-gateway-ingress
+  namespace: bda-energy
+spec:
+  podSelector:
+    matchLabels:
+      app: bda-api-gateway
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 8000
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              tier: backend
+      ports:
+        - protocol: TCP
+          port: 8001
+        - protocol: TCP
+          port: 8002
+        - protocol: TCP
+          port: 8003
+        - protocol: TCP
+          port: 8004
+        - protocol: TCP
+          port: 8005
+        - protocol: TCP
+          port: 8006
+        - protocol: TCP
+          port: 8007
+    # Allow DNS resolution
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+---
+# Allow Backend Microservices to MongoDB, Redis, and Kafka
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-backend-to-datastores
+  namespace: bda-energy
+spec:
+  podSelector:
+    matchLabels:
+      tier: backend
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: bda-api-gateway
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: bda-mongodb
+      ports:
+        - protocol: TCP
+          port: 27017
+    - to:
+        - podSelector:
+            matchLabels:
+              app: bda-redis
+      ports:
+        - protocol: TCP
+          port: 6379
+    - to:
+        - podSelector:
+            matchLabels:
+              app: bda-kafka
+      ports:
+        - protocol: TCP
+          port: 9092
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+---
+# Restrict MongoDB to Authorized Backend Workloads Only
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-mongodb-ingress
+  namespace: bda-energy
+spec:
+  podSelector:
+    matchLabels:
+      app: bda-mongodb
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              tier: backend
+      ports:
+        - protocol: TCP
+          port: 27017

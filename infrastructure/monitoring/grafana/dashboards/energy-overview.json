@@ -1,0 +1,61 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "title": "API Gateway Request Throughput",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        { "expr": "sum(rate(gateway_requests_total[1m])) by (status)", "legendFormat": "{{status}}" }
+      ]
+    },
+    {
+      "title": "P95 Gateway Response Latency",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum(rate(gateway_request_duration_seconds_bucket[5m])) by (le))", "legendFormat": "P95 Latency (s)" }
+      ]
+    },
+    {
+      "title": "Stream Telemetry Throughput",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 8 },
+      "targets": [
+        { "expr": "rate(stream_events_emitted_total[1m])", "legendFormat": "Events / sec" }
+      ]
+    },
+    {
+      "title": "Connected SSE Clients",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 8 },
+      "targets": [
+        { "expr": "stream_active_sse_clients", "legendFormat": "Active Connections" }
+      ]
+    },
+    {
+      "title": "Authentication Failures",
+      "type": "timeseries",
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        { "expr": "sum(rate(auth_failures_total[1m])) by (reason)", "legendFormat": "{{reason}}" }
+      ]
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["energy", "bda", "kubernetes"],
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": { "refresh_intervals": ["5s", "10s", "30s", "1m"] },
+  "timezone": "browser",
+  "title": "VoltGrid Platform Observability",
+  "uid": "voltgrid-overview",
+  "version": 1
+}

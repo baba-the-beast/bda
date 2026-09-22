@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bda-platform-config
+  namespace: bda-energy
+data:
+  LOG_LEVEL: "INFO"
+  AUTH_SERVICE_URL: "http://bda-auth-service:8001"
+  DATASET_SERVICE_URL: "http://bda-dataset-service:8002"
+  PREPROCESSING_SERVICE_URL: "http://bda-preprocessing-service:8003"
+  JOB_ORCHESTRATOR_URL: "http://bda-job-orchestrator:8004"
+  HIVE_QUERY_SERVICE_URL: "http://bda-hive-query-service:8005"
+  ANALYTICS_SERVICE_URL: "http://bda-analytics-service:8006"
+  STREAM_SERVICE_URL: "http://bda-stream-service:8007"
+  KAFKA_BOOTSTRAP_SERVERS: "bda-kafka:9092"
+  KAFKA_TOPIC: "energy-events"
+  MONGO_DB_NAME: "bda_energy"
+  BDA_MODE: "FULL_BDA"
+  DATA_STORE_MODE: "mongodb"
+  HDFS_MODE: "cluster"
+  WEBHDFS_URL: "http://bda-hadoop-namenode:9870/webhdfs/v1"
+---
+# =============================================================================
+# SECURITY NOTICE: NEVER COMMIT REAL SECRETS OR CREDENTIALS HERE.
+#
+# Production secrets must be injected at deploy time via a secrets manager
+# (e.g., Vault, AWS Secrets Manager, SealedSecrets) or created directly via kubectl:
+#
+#   kubectl create secret generic bda-platform-secrets \
+#     --namespace=bda-energy \
+#     --from-literal=JWT_SECRET="<SECURE_32_BYTE_HEX_KEY>" \
+#     --from-literal=MONGO_URI="mongodb://<USER>:<PASS>@bda-mongodb:27017/bda_energy?authSource=admin" \
+#     --from-literal=REDIS_URL="redis://:<PASS>@bda-redis:6379/0"
+#
+# The entries below are strictly dummy placeholders for manifest schema validation.
+# =============================================================================
+apiVersion: v1
+kind: Secret
+metadata:
+  name: bda-platform-secrets
+  namespace: bda-energy
+type: Opaque
+stringData:
+  JWT_SECRET: "REPLACE_WITH_SECURE_32_BYTE_HEX_OR_RANDOM_SECRET"
+  MONGO_URI: "mongodb://bda_app:REPLACE_WITH_SECURE_MONGO_PASSWORD@bda-mongodb:27017/bda_energy?authSource=admin"
+  REDIS_URL: "redis://:REPLACE_WITH_SECURE_REDIS_PASSWORD@bda-redis:6379/0"
+

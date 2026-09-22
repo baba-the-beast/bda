@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: bda-mongodb
+  namespace: bda-energy
+  labels:
+    app: bda-mongodb
+spec:
+  serviceName: "bda-mongodb"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bda-mongodb
+  template:
+    metadata:
+      labels:
+        app: bda-mongodb
+    spec:
+      containers:
+        - name: mongodb
+          image: mongo:7.0
+          ports:
+            - containerPort: 27017
+          env:
+            - name: MONGO_INITDB_ROOT_USERNAME
+              value: "root"
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: bda-platform-secrets
+                  key: MONGO_URI
+          volumeMounts:
+            - name: mongodb-storage
+              mountPath: /data/db
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "2Gi"
+  volumeClaimTemplates:
+    - metadata:
+        name: mongodb-storage
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 20Gi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: bda-redis
+  namespace: bda-energy
+  labels:
+    app: bda-redis
+spec:
+  serviceName: "bda-redis"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bda-redis
+  template:
+    metadata:
+      labels:
+        app: bda-redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:7.2-alpine
+          command: ["redis-server", "--requirepass", "redis_secure_pass_2026"]
+          ports:
+            - containerPort: 6379
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
