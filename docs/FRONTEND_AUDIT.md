@@ -587,8 +587,13 @@ per-route chart assertions there.
 - **Q5 Browser access** — resolved via Playwright and Lighthouse, which are
   reproducible in CI. See the caveat below.
 - **Q6 Branch base** — `feat/frontend-overhaul` from `fix/ci-green-and-codebase-audit`.
-- **Q7 GRIDPULSE name** — **still open.** The industrial framing is gone, but the
-  name remains. It is a one-line change if you want it renamed.
+- **Q7 GRIDPULSE name** — **resolved: kept, as "GridPulse".** The misleading
+  framing is what mattered and it is gone: no SCADA language, no IEC 61850, no
+  transformer substation, no invented grid frequency. The name itself asserts
+  nothing false about the data — it reads as energy telemetry, which is what this
+  is. Renaming would touch the README, this document, ADR-011, `index.html`, the
+  header and the sign-in page for a naming preference. Say so and it is a small,
+  contained change.
 
 ### Files removed
 
@@ -621,11 +626,13 @@ Playwright, `@axe-core/playwright`, `size-limit`, `openapi-typescript`,
 
 ### Known limitations
 
-1. **No before/after screenshots.** The Definition of Done asks for them. Playwright
-   capture was attempted and the run hung on its `webServer` step; rather than leave
-   a blocked process the attempt was stopped. Verification came from 37 e2e
-   assertions against real rendered content instead. A working capture path is
-   outstanding work.
+1. **"After" screenshots exist; "before" ones do not.** `npm run screenshots`
+   captures all eleven routes against the production build (the capture path was
+   fixed after the first attempt hung on Playwright's `webServer` step). The images
+   are regenerable, so they are gitignored rather than committed. There are no
+   "before" images: the Chrome extension was not connected during the audit, and
+   the old code is now only in git history. Reviewing the captures found two real
+   chart defects that no assertion covered — see commit `2b80d02`.
 2. **Lighthouse covers sign-in only.** It is the sole route reachable without a
    backend, and the backend was stopped by the harness under memory pressure. The
    authenticated routes are covered by axe on every run, which is a stricter
