@@ -63,8 +63,16 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       )}
       {...props}
     >
-      {loading ? <Loader2 aria-hidden className="size-3.5 animate-spin" /> : icon}
-      {children}
+      {/* Radix Slot accepts a single child, so when rendering as another
+          element the icon slot is skipped and the child is forwarded as-is. */}
+      {asChild === true ? (
+        children
+      ) : (
+        <>
+          {loading ? <Loader2 aria-hidden className="size-3.5 animate-spin" /> : icon}
+          {children}
+        </>
+      )}
     </Comp>
   );
 });

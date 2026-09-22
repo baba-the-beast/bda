@@ -13,9 +13,9 @@ const CONTROL = cn(
 export interface FieldProps {
   label: string;
   /** Guidance shown under the control and wired up via aria-describedby. */
-  hint?: string;
-  error?: string;
-  required?: boolean;
+  hint?: string | undefined;
+  error?: string | undefined;
+  required?: boolean | undefined;
   children: (ids: { id: string; describedBy: string | undefined; invalid: boolean }) => ReactNode;
 }
 

@@ -1,61 +1,107 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 /**
- * Phase 1 smoke coverage.
+ * End-to-end smoke coverage.
  *
- * The app has no router yet, so only the unauthenticated entry point is
- * reachable. This file grows a case per route as Phase 5 lands them; by the end
- * it covers sign in, dataset selection, every route, and stream start/stop.
+ * The backend is stubbed with route interception, so this runs against the
+ * production build with no services required. It grows a case per route as
+ * Phase 5 replaces the page components.
  */
-test.describe('application shell', () => {
-  test('serves the built app and renders the sign-in form', async ({ page }) => {
-    await page.goto('/');
 
-    await expect(page.getByRole('textbox', { name: /email/i })).toBeVisible();
-    await expect(page.getByLabel(/password/i)).toBeVisible();
-    await expect(page.getByRole('button', { name: /authenticate console session/i })).toBeVisible();
+const USER = {
+  id: 'user-1',
+  email: 'analyst@example.test',
+  full_name: 'Test Analyst',
+  role: 'ADMIN',
+  workspace_id: 'default-workspace',
+  is_active: true,
+};
+
+const DATASET = {
+  id: 'ds_e2e00000001',
+  filename: 'household_power_consumption.txt',
+  size_bytes: 28537,
+  checksum_sha256: 'abc123',
+  version: 1,
+  status: 'PROCESSED',
+  workspace_id: 'default-workspace',
+  created_by: USER.email,
+  created_at: '2026-09-22T17:09:24Z',
+};
+
+async function stubApi(page: Page): Promise<void> {
+  await page.route('**/api/v1/auth/login', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        access_token: 'e2e-access',
+        refresh_token: 'e2e-refresh',
+        token_type: 'bearer',
+        expires_in: 900,
+      }),
+    }),
+  );
+  await page.route('**/api/v1/auth/me', (route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(USER) }),
+  );
+  await page.route('**/api/v1/datasets', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify([DATASET]),
+    }),
+  );
+  // Everything else answers with an empty collection so panels render their
+  // empty state rather than hanging.
+  await page.route('**/api/v1/**', (route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }),
+  );
+}
+
+async function signIn(page: Page): Promise<void> {
+  await stubApi(page);
+  await page.goto('/sign-in');
+  await page.getByLabel('Email').fill(USER.email);
+  await page.getByLabel('Password').fill('correct-horse-battery');
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page).toHaveURL(/\/overview/);
+}
+
+test.describe('sign-in', () => {
+  test.beforeEach(async ({ page }) => {
+    await stubApi(page);
   });
 
-  test('sign-in fields expose accessible names', async ({ page }) => {
-    await page.goto('/');
+  test('renders labelled fields and a plainly worded submit', async ({ page }) => {
+    await page.goto('/sign-in');
 
-    // Regression guard: the labels were unassociated, so screen readers
-    // announced these fields by their value (docs/FRONTEND_AUDIT.md §9).
-    await expect(page.getByLabel(/operator identifier/i)).toHaveAttribute('type', 'email');
-    await expect(page.getByLabel(/access cipher/i)).toHaveAttribute('type', 'password');
+    await expect(page.getByLabel('Email')).toHaveAttribute('type', 'email');
+    await expect(page.getByLabel('Password')).toHaveAttribute('type', 'password');
+    await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
   });
 
-  test('has no serious or critical accessibility violations', async ({ page }) => {
-    await page.goto('/');
+  test('ships no credentials in the bundle by default', async ({ page }) => {
+    await page.goto('/sign-in');
 
-    const results = await new AxeBuilder({ page })
-      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
-      .analyze();
-
-    const blocking = results.violations.filter(
-      (v) => v.impact === 'serious' || v.impact === 'critical',
-    );
-
-    expect(
-      blocking,
-      `Blocking a11y violations:\n${blocking.map((v) => `${v.id}: ${v.help}`).join('\n')}`,
-    ).toEqual([]);
+    await expect(page.getByLabel('Email')).toHaveValue('');
+    await expect(page.getByLabel('Password')).toHaveValue('');
+    await expect(page.getByText(/demo accounts/i)).toBeHidden();
+    await expect(page.getByText(/AdminPass/i)).toHaveCount(0);
   });
 
-  test('keyboard alone reaches the submit button', async ({ page }) => {
-    await page.goto('/');
+  test('validates before calling the API', async ({ page }) => {
+    await page.goto('/sign-in');
+    await page.getByLabel('Email').fill('not-an-email');
+    await page.getByRole('button', { name: 'Sign in' }).click();
 
-    await page.getByLabel(/operator identifier/i).focus();
-    await page.keyboard.press('Tab');
-    await expect(page.getByLabel(/access cipher/i)).toBeFocused();
-    await page.keyboard.press('Tab');
-    await expect(page.getByRole('button', { name: /authenticate console session/i })).toBeFocused();
+    await expect(page.getByText('Enter a valid email address')).toBeVisible();
   });
 
-  test('reports a failed sign-in instead of hanging', async ({ page }) => {
-    await page.route('**/api/v1/auth/login', async (route) => {
-      await route.fulfill({
+  test('surfaces a rejected sign-in', async ({ page }) => {
+    await page.route('**/api/v1/auth/login', (route) =>
+      route.fulfill({
         status: 401,
         contentType: 'application/json',
         body: JSON.stringify({
@@ -66,12 +112,111 @@ test.describe('application shell', () => {
             details: [],
           },
         }),
-      });
-    });
+      }),
+    );
 
-    await page.goto('/');
-    await page.getByRole('button', { name: /authenticate console session/i }).click();
+    await page.goto('/sign-in');
+    await page.getByLabel('Email').fill(USER.email);
+    await page.getByLabel('Password').fill('wrong');
+    await page.getByRole('button', { name: 'Sign in' }).click();
 
-    await expect(page.getByText(/invalid credentials provided/i)).toBeVisible();
+    await expect(page.getByRole('alert')).toContainText('Invalid credentials provided');
+  });
+
+  test('reaches the submit button by keyboard alone', async ({ page }) => {
+    await page.goto('/sign-in');
+    await page.getByLabel('Email').focus();
+    await page.keyboard.press('Tab');
+    await expect(page.getByLabel('Password')).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(page.getByRole('button', { name: 'Sign in' })).toBeFocused();
+  });
+});
+
+test.describe('routing', () => {
+  test('redirects an anonymous visitor to sign-in', async ({ page }) => {
+    await stubApi(page);
+    await page.goto('/jobs');
+    await expect(page).toHaveURL(/\/sign-in/);
+  });
+
+  test('returns the visitor to where they were heading after signing in', async ({ page }) => {
+    await stubApi(page);
+    await page.goto('/query');
+    await expect(page).toHaveURL(/\/sign-in/);
+
+    await page.getByLabel('Email').fill(USER.email);
+    await page.getByLabel('Password').fill('correct-horse-battery');
+    await page.getByRole('button', { name: 'Sign in' }).click();
+
+    await expect(page).toHaveURL(/\/query/);
+  });
+
+  test('gives every section its own URL', async ({ page }) => {
+    await signIn(page);
+
+    for (const path of [
+      '/datasets',
+      '/pipelines',
+      '/jobs',
+      '/analysis',
+      '/sub-meters',
+      '/voltage',
+      '/query',
+      '/platform',
+      '/demo',
+    ]) {
+      await page.goto(path);
+      await expect(page).toHaveURL(new RegExp(path));
+      await expect(page.getByRole('navigation', { name: 'Sections' })).toBeVisible();
+    }
+  });
+
+  test('survives a reload and the back button', async ({ page }) => {
+    await signIn(page);
+
+    await page.goto('/query');
+    await page.reload();
+    await expect(page).toHaveURL(/\/query/);
+
+    await page.goto('/jobs');
+    await page.goBack();
+    await expect(page).toHaveURL(/\/query/);
+  });
+
+  test('shows a 404 for an unknown address', async ({ page }) => {
+    await signIn(page);
+    await page.goto('/not-a-section');
+    await expect(page.getByText('Page not found')).toBeVisible();
+  });
+});
+
+test.describe('accessibility', () => {
+  test('sign-in has no serious or critical violations', async ({ page }) => {
+    await stubApi(page);
+    await page.goto('/sign-in');
+
+    const results = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+      .analyze();
+    const blocking = results.violations.filter(
+      (v) => v.impact === 'serious' || v.impact === 'critical',
+    );
+
+    expect(blocking, blocking.map((v) => `${v.id}: ${v.help}`).join('\n')).toEqual([]);
+  });
+
+  test('the signed-in shell has no serious or critical violations', async ({ page }) => {
+    await signIn(page);
+
+    const results = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+      .include('nav[aria-label="Sections"]')
+      .analyze();
+    const blocking = results.violations.filter(
+      (v) => v.impact === 'serious' || v.impact === 'critical',
+    );
+
+    expect(blocking, blocking.map((v) => `${v.id}: ${v.help}`).join('\n')).toEqual([]);
   });
 });

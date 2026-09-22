@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Zap, Activity, HardDrive, Flame, Layers, ArrowUpRight, CheckCircle2 } from 'lucide-react';
 import { api } from '../api';
 import { Dataset } from '../types';
 
 interface OverviewProps {
-  onNavigate: (page: string) => void;
+  onNavigate?: (page: string) => void;
 }
 
-export const OverviewPage: React.FC<OverviewProps> = ({ onNavigate }) => {
+export const OverviewPage: React.FC<OverviewProps> = () => {
+  const navigate = useNavigate();
   const [datasets, setDatasets] = useState<Dataset[]>([]);
   const [selectedDataset, setSelectedDataset] = useState<string>('');
   const [overview, setOverview] = useState<any>(null);
@@ -69,7 +71,7 @@ export const OverviewPage: React.FC<OverviewProps> = ({ onNavigate }) => {
           </select>
 
           <button
-            onClick={() => onNavigate('viva-demo')}
+            onClick={() => navigate('/demo')}
             className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold text-sm rounded-xl shadow-lg shadow-cyan-500/20 transition flex items-center space-x-2"
           >
             <span>Launch Viva Demo</span>
@@ -201,7 +203,7 @@ export const OverviewPage: React.FC<OverviewProps> = ({ onNavigate }) => {
       {/* Quick Navigation Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <button
-          onClick={() => onNavigate('analytics')}
+          onClick={() => navigate('/analysis')}
           className="p-5 rounded-2xl bg-slate-900/40 border border-slate-800 hover:border-slate-700 text-left transition group"
         >
           <div className="flex items-center justify-between">
@@ -215,7 +217,7 @@ export const OverviewPage: React.FC<OverviewProps> = ({ onNavigate }) => {
         </button>
 
         <button
-          onClick={() => onNavigate('streaming')}
+          onClick={() => navigate('/stream')}
           className="p-5 rounded-2xl bg-slate-900/40 border border-slate-800 hover:border-slate-700 text-left transition group"
         >
           <div className="flex items-center justify-between">
@@ -229,7 +231,7 @@ export const OverviewPage: React.FC<OverviewProps> = ({ onNavigate }) => {
         </button>
 
         <button
-          onClick={() => onNavigate('query-lab')}
+          onClick={() => navigate('/query')}
           className="p-5 rounded-2xl bg-slate-900/40 border border-slate-800 hover:border-slate-700 text-left transition group"
         >
           <div className="flex items-center justify-between">

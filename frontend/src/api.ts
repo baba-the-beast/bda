@@ -1,316 +1,154 @@
-import {
-  User,
-  Dataset,
-  DataQualityReport,
-  AnalyticsJob,
-  DailyAggregate,
-  HourlyAggregate,
-  MonthlyAggregate,
-  PeakEvent,
+/**
+ * Compatibility shim for the pre-overhaul page components.
+ *
+ * The real client is `src/lib/api/` — typed against the generated OpenAPI
+ * schema, with single-flight refresh and correlation-ID-carrying errors. This
+ * module only re-exposes the old method names on top of it so `src/pages/**`
+ * keeps working while Phase 5 rewrites those pages one domain at a time.
+ *
+ * Do not add to this file, and do not import it from new code. It is deleted
+ * with the last legacy page (docs/FRONTEND_AUDIT.md, legacy ledger).
+ */
+
+import { API_BASE, apiFetch, apiRequest } from './lib/api/client';
+import type {
+  AnalyticsJob as LegacyJob,
+  DailyAggregate as LegacyDaily,
+  DataQualityReport as LegacyQuality,
+  Dataset as LegacyDataset,
+  HourlyAggregate as LegacyHourly,
+  MonthlyAggregate as LegacyMonthly,
+  PeakEvent as LegacyPeak,
+  User as LegacyUser,
 } from './types';
+import { analytics, auth, datasets, hive, jobs, stream, type JobType } from './lib/api/endpoints';
+import { tokenStore } from './lib/api/tokens';
 
-const getApiBase = () => {
-  if (import.meta.env.VITE_API_URL) {
-    let base = String(import.meta.env.VITE_API_URL).trim();
-    if (!base.startsWith('http://') && !base.startsWith('https://')) {
-      base = `https://${base}`;
-    }
-    return base.endsWith('/api/v1') ? base : `${base.replace(/\/+$/, '')}/api/v1`;
-  }
-  return '/api/v1';
-};
+/**
+ * The legacy pages are typed against the hand-written shapes in src/types.ts,
+ * which describe the same payloads as the generated schema but differ in which
+ * fields are optional. Reconciling them is this adapter's job, so the casts
+ * live here rather than being scattered through the pages.
+ */
+const adapt = <T>(value: unknown): T => value as T;
 
-const API_BASE = getApiBase();
-
-class ApiClient {
-  private token: string | null = localStorage.getItem('access_token');
-
-  setToken(token: string | null) {
-    this.token = token;
-    if (token) {
-      localStorage.setItem('access_token', token);
-    } else {
-      localStorage.removeItem('access_token');
-    }
-  }
-
-  getToken(): string | null {
-    return this.token;
-  }
-
-  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const headers = new Headers(options.headers || {});
-    if (this.token) {
-      headers.set('Authorization', `Bearer ${this.token}`);
-    }
-    if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {
-      headers.set('Content-Type', 'application/json');
-    }
-
-    const response = await fetch(`${API_BASE}${endpoint}`, {
-      ...options,
-      headers,
-    });
-
-    if (response.status === 401) {
-      this.setToken(null);
-      window.dispatchEvent(new Event('auth:unauthorized'));
-    }
-
-    if (!response.ok) {
-      let errorData;
-      try {
-        errorData = await response.json();
-      } catch {
-        errorData = { error: { message: response.statusText } };
-      }
-      throw new Error(errorData.error?.message || 'API request failed');
-    }
-
-    return response.json();
-  }
-
+export const api = {
   // Auth
-  async login(email: string, password: string) {
-    const data = await this.request<{ access_token: string; refresh_token: string }>(
-      '/auth/login',
-      {
-        method: 'POST',
-        body: JSON.stringify({ email, password }),
-      },
-    );
-    this.setToken(data.access_token);
-    return data;
-  }
-
-  async getProfile(): Promise<User> {
-    return this.request<User>('/auth/me');
-  }
-
-  async logout() {
-    try {
-      await this.request('/auth/logout', { method: 'POST' });
-    } finally {
-      this.setToken(null);
-    }
-  }
+  getToken: () => tokenStore.getAccessToken(),
+  setToken: (token: string | null) => {
+    tokenStore.setAccessToken(token);
+  },
+  login: (email: string, password: string) => auth.login(email, password).then(adapt<LegacyUser>),
+  getProfile: () => auth.profile().then(adapt<LegacyUser>),
+  logout: () => auth.logout(),
+  listUsers: () => auth.users().then(adapt<LegacyUser[]>),
+  getAuditLogs: (limit = 50) => apiRequest<any[]>(`/auth/audit-logs?limit=${String(limit)}`),
+  getSecurityEvents: (limit = 50) =>
+    apiRequest<any[]>(`/auth/security-events?limit=${String(limit)}`),
 
   // Datasets
-  async listDatasets(): Promise<Dataset[]> {
-    return this.request<Dataset[]>('/datasets');
-  }
-
-  async importLocalDataset(filePath: string): Promise<Dataset> {
-    return this.request<Dataset>('/datasets/import-local', {
-      method: 'POST',
-      body: JSON.stringify({ file_path: filePath }),
-    });
-  }
-
-  async preprocessDataset(datasetId: string): Promise<DataQualityReport> {
-    return this.request<DataQualityReport>(`/datasets/${datasetId}/preprocess`, {
-      method: 'POST',
-    });
-  }
+  listDatasets: () => datasets.list().then(adapt<LegacyDataset[]>),
+  getDatasets: () => datasets.list().then(adapt<LegacyDataset[]>),
+  importLocalDataset: (filePath: string) =>
+    datasets.importLocal(filePath).then(adapt<LegacyDataset>),
+  preprocessDataset: (datasetId: string) =>
+    datasets.preprocess(datasetId).then(adapt<LegacyQuality>),
+  async getDefaultDatasetId(): Promise<string | null> {
+    try {
+      const list = await datasets.list();
+      return list[0]?.id ?? null;
+    } catch {
+      return null;
+    }
+  },
 
   // Jobs
-  async listJobs(datasetId?: string): Promise<AnalyticsJob[]> {
-    const query = datasetId ? `?dataset_id=${datasetId}` : '';
-    return this.request<AnalyticsJob[]>(`/jobs${query}`);
-  }
-
-  async createJob(datasetId: string, jobType: string): Promise<AnalyticsJob> {
-    return this.request<AnalyticsJob>('/jobs', {
-      method: 'POST',
-      body: JSON.stringify({ dataset_id: datasetId, job_type: jobType }),
-    });
-  }
-
-  async retryJob(jobId: string): Promise<AnalyticsJob> {
-    return this.request<AnalyticsJob>(`/jobs/${jobId}/retry`, { method: 'POST' });
-  }
+  listJobs: (datasetId?: string) => jobs.list(datasetId).then(adapt<LegacyJob[]>),
+  getJobs: (datasetId?: string) => jobs.list(datasetId).then(adapt<LegacyJob[]>),
+  createJob: (datasetId: string, jobType: string) =>
+    jobs.create(datasetId, jobType as JobType).then(adapt<LegacyJob>),
+  submitJob: (datasetId: string, jobType: string) =>
+    jobs.create(datasetId, jobType as JobType).then(adapt<LegacyJob>),
+  retryJob: (jobId: string) => jobs.retry(jobId).then(adapt<LegacyJob>),
 
   // Analytics
-  async getOverview(datasetId?: string) {
-    const query = datasetId ? `?dataset_id=${datasetId}` : '';
-    return this.request<any>(`/analytics/overview${query}`);
-  }
-
-  async getDailyAnalytics(datasetId: string): Promise<DailyAggregate[]> {
-    return this.request<DailyAggregate[]>(`/analytics/daily?dataset_id=${datasetId}`);
-  }
-
-  async getHourlyAnalytics(datasetId: string): Promise<HourlyAggregate[]> {
-    return this.request<HourlyAggregate[]>(`/analytics/hourly?dataset_id=${datasetId}`);
-  }
-
-  async getMonthlyAnalytics(datasetId: string): Promise<MonthlyAggregate[]> {
-    return this.request<MonthlyAggregate[]>(`/analytics/monthly?dataset_id=${datasetId}`);
-  }
-
-  async getPeakAnalytics(datasetId: string): Promise<PeakEvent[]> {
-    return this.request<PeakEvent[]>(`/analytics/peak?dataset_id=${datasetId}`);
-  }
-
-  async getSubmeters(datasetId: string) {
-    return this.request<any>(`/analytics/submeters?dataset_id=${datasetId}`);
-  }
-
-  async getProjectMetrics() {
-    return this.request<any>('/analytics/metrics');
-  }
+  getOverview: (datasetId?: string) => analytics.overview(datasetId),
+  getDailyAnalytics: (datasetId: string) => analytics.daily(datasetId).then(adapt<LegacyDaily[]>),
+  getHourlyAnalytics: (datasetId: string) =>
+    analytics.hourly(datasetId).then(adapt<LegacyHourly[]>),
+  getMonthlyAnalytics: (datasetId: string) =>
+    analytics.monthly(datasetId).then(adapt<LegacyMonthly[]>),
+  getPeakAnalytics: (datasetId: string) => analytics.peak(datasetId).then(adapt<LegacyPeak[]>),
+  getSubmeters: (datasetId: string) =>
+    apiRequest<any>(`/analytics/submeters?dataset_id=${datasetId}`),
+  getProjectMetrics: () => apiRequest<any>('/analytics/metrics'),
+  async getDailyAggregates(datasetId?: string) {
+    const target = datasetId ?? (await api.getDefaultDatasetId());
+    return target === null ? [] : analytics.daily(target).then(adapt<LegacyDaily[]>);
+  },
+  async getHourlyAggregates(datasetId?: string) {
+    const target = datasetId ?? (await api.getDefaultDatasetId());
+    return target === null ? [] : analytics.hourly(target).then(adapt<LegacyHourly[]>);
+  },
 
   // Hive
-  async listHiveTemplates() {
-    return this.request<any[]>('/hive/templates');
-  }
-
-  async executeHiveQuery(datasetId: string, templateName: string, params: any = {}) {
-    return this.request<any>('/hive/queries/execute', {
-      method: 'POST',
-      body: JSON.stringify({
-        dataset_id: datasetId,
-        template_name: templateName,
-        parameters: params,
-      }),
-    });
-  }
+  listHiveTemplates: () => hive.templates(),
+  executeHiveQuery: (datasetId: string, templateName: string, params: any = {}) =>
+    hive.execute(datasetId, templateName, params),
 
   // Stream
-  async getStreamStatus() {
-    return this.request<any>('/stream/status');
-  }
-
-  async startStream(datasetId: string, rate = 5) {
-    return this.request<any>('/stream/start', {
-      method: 'POST',
-      body: JSON.stringify({ dataset_id: datasetId, events_per_second: rate }),
-    });
-  }
-
-  async pauseStream() {
-    return this.request<any>('/stream/pause', { method: 'POST' });
-  }
-
-  async resumeStream() {
-    return this.request<any>('/stream/resume', { method: 'POST' });
-  }
-
-  async stopStream() {
-    return this.request<any>('/stream/stop', { method: 'POST' });
-  }
-
-  // Authenticated file download helper
-  async downloadFile(endpoint: string, defaultFilename = 'export.csv'): Promise<void> {
-    const headers = new Headers();
-    if (this.token) {
-      headers.set('Authorization', `Bearer ${this.token}`);
-    }
-    const cleanPath = endpoint.startsWith('/api/v1')
-      ? endpoint.slice(7)
-      : endpoint.startsWith('/')
-        ? endpoint
-        : `/${endpoint}`;
-    const url = `${API_BASE}${cleanPath}`;
-
-    const response = await fetch(url, { headers });
-    if (!response.ok) {
-      throw new Error(`Download failed: HTTP ${response.status} ${response.statusText}`);
-    }
-    const blob = await response.blob();
-    const objectUrl = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = objectUrl;
-    a.download = defaultFilename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    window.URL.revokeObjectURL(objectUrl);
-  }
-
-  /** Exchange the access token for a short-lived, stream-only ticket. */
+  getStreamStatus: () => apiRequest<any>('/stream/status'),
+  startStream: (datasetId: string, rate = 5) => stream.start(datasetId, rate),
+  pauseStream: () => stream.pause(),
+  resumeStream: () => stream.resume(),
+  stopStream: () => stream.stop(),
   async getStreamTicket(): Promise<string> {
-    const data = await this.request<{ ticket: string; expires_in: number }>('/stream/ticket', {
-      method: 'POST',
-    });
-    return data.ticket;
-  }
+    const { ticket } = await stream.ticket();
+    return ticket;
+  },
 
-  // Live Stream SSE Subscriber
   subscribeLiveStream(
     onData: (data: any) => void,
     onError?: (err: any) => void,
     ticket?: string,
   ): EventSource {
-    // The ticket expires in 30 seconds and grants nothing but the telemetry
-    // feed, so exposing it in the URL is bounded (docs/FRONTEND_BACKEND_REQUESTS.md).
-    const ticketQuery = ticket ? `?ticket=${encodeURIComponent(ticket)}` : '';
-    const es = new EventSource(`${API_BASE}/stream/live${ticketQuery}`);
+    const ticketQuery = ticket === undefined ? '' : `?ticket=${encodeURIComponent(ticket)}`;
+    const source = new EventSource(`${API_BASE}/stream/live${ticketQuery}`);
 
-    const parseAndDispatch = (event: MessageEvent) => {
+    const dispatch = (event: MessageEvent<string>) => {
       try {
-        const parsed = JSON.parse(event.data);
-        onData(parsed);
-      } catch (e) {
-        console.error('Failed to parse SSE payload', e);
+        onData(JSON.parse(event.data));
+      } catch {
+        // A malformed frame is dropped rather than tearing down the stream.
       }
     };
 
-    // Listen to custom named telemetry events and standard SSE message events
-    es.addEventListener('telemetry', parseAndDispatch);
-    es.onmessage = parseAndDispatch;
+    source.addEventListener('telemetry', dispatch);
+    source.onmessage = dispatch;
+    if (onError !== undefined) source.onerror = onError;
+    return source;
+  },
 
-    if (onError) {
-      es.onerror = onError;
+  async downloadFile(endpoint: string, defaultFilename = 'export.csv'): Promise<void> {
+    const path = endpoint.startsWith('/api/v1')
+      ? endpoint.slice('/api/v1'.length)
+      : endpoint.startsWith('/')
+        ? endpoint
+        : `/${endpoint}`;
+
+    const response = await apiFetch(path);
+    if (!response.ok) {
+      throw new Error(`Download failed: HTTP ${String(response.status)}`);
     }
-    return es;
-  }
 
-  // Dynamic dataset resolution
-  async getDefaultDatasetId(): Promise<string | null> {
-    try {
-      const datasets = await this.listDatasets();
-      return datasets[0]?.id ?? null;
-    } catch {
-      return null;
-    }
-  }
-
-  // Friendly aliases with dynamic dataset resolution
-  async getDailyAggregates(datasetId?: string): Promise<DailyAggregate[]> {
-    const target = datasetId || (await this.getDefaultDatasetId());
-    return target ? this.getDailyAnalytics(target) : [];
-  }
-
-  async getHourlyAggregates(datasetId?: string): Promise<HourlyAggregate[]> {
-    const target = datasetId || (await this.getDefaultDatasetId());
-    return target ? this.getHourlyAnalytics(target) : [];
-  }
-
-  async getJobs(datasetId?: string): Promise<AnalyticsJob[]> {
-    return this.listJobs(datasetId);
-  }
-
-  async getDatasets(): Promise<Dataset[]> {
-    return this.listDatasets();
-  }
-
-  async submitJob(datasetId: string, jobType: string): Promise<AnalyticsJob> {
-    return this.createJob(datasetId, jobType);
-  }
-
-  // Admin
-  async listUsers(): Promise<User[]> {
-    return this.request<User[]>('/auth/users');
-  }
-
-  async getAuditLogs(limit = 50) {
-    return this.request<any[]>(`/auth/audit-logs?limit=${limit}`);
-  }
-
-  async getSecurityEvents(limit = 50) {
-    return this.request<any[]>(`/auth/security-events?limit=${limit}`);
-  }
-}
-
-export const api = new ApiClient();
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = objectUrl;
+    anchor.download = defaultFilename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(objectUrl);
+  },
+};

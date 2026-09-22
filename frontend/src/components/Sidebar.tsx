@@ -9,6 +9,7 @@ import {
   Radio,
   ShieldCheck,
   Terminal,
+  Workflow,
   Zap,
 } from 'lucide-react';
 
@@ -17,17 +18,34 @@ import { cn } from '../lib/cn';
 import { Badge } from './ui/Status';
 
 export type PageId =
-  | 'live-telemetry'
-  | 'load-profile'
-  | 'sub-meters'
-  | 'data-engine'
-  | 'substation'
-  | 'query-lab'
-  | 'metrics'
+  | 'overview'
   | 'datasets'
+  | 'pipelines'
   | 'jobs'
+  | 'analysis'
+  | 'sub-meters'
+  | 'voltage'
+  | 'query'
+  | 'stream'
+  | 'platform'
   | 'admin'
-  | 'viva-demo';
+  | 'demo';
+
+/** Single source of truth for the URL of each section. */
+export const ROUTE_FOR_PAGE: Record<PageId, string> = {
+  overview: '/overview',
+  datasets: '/datasets',
+  pipelines: '/pipelines',
+  jobs: '/jobs',
+  analysis: '/analysis',
+  'sub-meters': '/sub-meters',
+  voltage: '/voltage',
+  query: '/query',
+  stream: '/stream',
+  platform: '/platform',
+  admin: '/admin',
+  demo: '/demo',
+};
 
 interface NavItem {
   id: PageId;
@@ -39,33 +57,40 @@ interface NavItem {
 
 /**
  * Navigation grouped by pipeline stage, so the path from raw data to live
- * telemetry is legible. Section names describe the data, not an imagined
- * control room.
+ * telemetry is legible.
+ *
+ * `pipelines` and `sub-meters` are separate entries for now. The target IA
+ * folds them into `jobs` and `analysis` as tabs in Phase 5; routing them here
+ * keeps the functionality reachable until then (docs/FRONTEND_AUDIT.md §5).
  */
 const SECTIONS: { heading: string; items: NavItem[] }[] = [
+  {
+    heading: 'Overview',
+    items: [{ id: 'overview', label: 'Overview', Icon: LayoutDashboard }],
+  },
   {
     heading: 'Data pipeline',
     items: [
       { id: 'datasets', label: 'Datasets & quality', Icon: Database },
-      { id: 'data-engine', label: 'Pipelines & batch', Icon: LayoutDashboard, badge: 'HDFS' },
+      { id: 'pipelines', label: 'Pipelines & batch', Icon: Workflow, badge: 'HDFS' },
       { id: 'jobs', label: 'MapReduce jobs', Icon: Activity },
     ],
   },
   {
     heading: 'Analysis',
     items: [
-      { id: 'load-profile', label: 'Load profile', Icon: Gauge },
+      { id: 'analysis', label: 'Load profile', Icon: Gauge },
       { id: 'sub-meters', label: 'Sub-meters', Icon: Zap },
-      { id: 'substation', label: 'Voltage & power', Icon: Zap },
-      { id: 'query-lab', label: 'Hive query lab', Icon: Terminal },
+      { id: 'voltage', label: 'Voltage & power', Icon: Zap },
+      { id: 'query', label: 'Hive query lab', Icon: Terminal },
     ],
   },
   {
     heading: 'Live & platform',
     items: [
-      { id: 'live-telemetry', label: 'Live stream', Icon: Radio, badge: 'SSE' },
-      { id: 'metrics', label: 'Platform metrics', Icon: FileCheck2 },
-      { id: 'viva-demo', label: 'Guided demo', Icon: PlayCircle },
+      { id: 'stream', label: 'Live stream', Icon: Radio, badge: 'SSE' },
+      { id: 'platform', label: 'Platform metrics', Icon: FileCheck2 },
+      { id: 'demo', label: 'Guided demo', Icon: PlayCircle },
       { id: 'admin', label: 'Administration', Icon: ShieldCheck, adminOnly: true },
     ],
   },
