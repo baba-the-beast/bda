@@ -10,8 +10,6 @@ Preserves the authentic MapReduce paradigm with zero dummy shortcuts.
 import os
 import subprocess
 import sys
-import tempfile
-from typing import Dict, List, Optional, Tuple
 
 
 class MapReduceJobDefinition:
@@ -21,7 +19,7 @@ class MapReduceJobDefinition:
         self.reducer_script = reducer_script
 
 
-JOB_REGISTRY: Dict[str, MapReduceJobDefinition] = {
+JOB_REGISTRY: dict[str, MapReduceJobDefinition] = {
     "DAILY": MapReduceJobDefinition(
         "DAILY",
         os.path.join(os.path.dirname(__file__), "daily", "mapper.py"),
@@ -47,7 +45,7 @@ JOB_REGISTRY: Dict[str, MapReduceJobDefinition] = {
 
 class HadoopStreamingRunner:
     """Executes on a live Hadoop / YARN cluster using Hadoop Streaming."""
-    def __init__(self, hadoop_home: Optional[str] = None):
+    def __init__(self, hadoop_home: str | None = None):
         self.hadoop_home = hadoop_home or os.getenv("HADOOP_HOME", "/opt/hadoop")
 
     def run_cluster_job(
@@ -55,8 +53,8 @@ class HadoopStreamingRunner:
         job_type: str,
         input_hdfs_path: str,
         output_hdfs_path: str,
-        env_vars: Optional[Dict[str, str]] = None,
-    ) -> Tuple[bool, str]:
+        env_vars: dict[str, str] | None = None,
+    ) -> tuple[bool, str]:
         job_def = JOB_REGISTRY.get(job_type.upper())
         if not job_def:
             return False, f"Unknown job type: {job_type}"
@@ -76,7 +74,7 @@ class HadoopStreamingRunner:
             run_env.update(env_vars)
 
         try:
-            res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=run_env, check=True)
+            res = subprocess.run(cmd, capture_output=True, text=True, env=run_env, check=True)
             return True, res.stdout
         except subprocess.CalledProcessError as e:
             return False, f"Hadoop MapReduce failed: {e.stderr}"
@@ -95,8 +93,8 @@ class LocalStreamingPipelineRunner:
         job_type: str,
         input_file_path: str,
         output_file_path: str,
-        env_vars: Optional[Dict[str, str]] = None,
-    ) -> Tuple[bool, str]:
+        env_vars: dict[str, str] | None = None,
+    ) -> tuple[bool, str]:
         job_def = JOB_REGISTRY.get(job_type.upper())
         if not job_def:
             return False, f"Unknown job type: {job_type}"
@@ -112,7 +110,7 @@ class LocalStreamingPipelineRunner:
 
         try:
             # Step 1: Execute Mapper with input stream
-            with open(input_file_path, "r", encoding="utf-8") as in_f:
+            with open(input_file_path, encoding="utf-8") as in_f:
                 p_map = subprocess.Popen(
                     [python_bin, job_def.mapper_script],
                     stdin=in_f,
@@ -153,4 +151,4 @@ class LocalStreamingPipelineRunner:
             return True, f"MapReduce {job_type} completed successfully. Produced {line_count} aggregated records."
 
         except Exception as e:
-            return False, f"Execution failed: {str(e)}"
+            return False, f"Execution failed: {e!s}"

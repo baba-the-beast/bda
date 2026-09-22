@@ -4,34 +4,38 @@ Provides Argon2id/PBKDF2 hashing, JWT access/refresh token rotation,
 role-based access control, security event auditing, and session tracking.
 """
 
-from contextlib import asynccontextmanager
-from datetime import datetime, timezone
 import os
 import sys
 import uuid
-from typing import List, Optional
+from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 
-from fastapi import FastAPI, Request, Response, Header, Depends, status
+from fastapi import Depends, FastAPI, Header, Request, Response, status
 from fastapi.responses import JSONResponse
-from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
 from pydantic import BaseModel, EmailStr
 
 # Add project root to path if running directly
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..")))
 
-from shared.errors import (
-    PlatformException, AuthenticationException, AuthorizationException,
-    ConflictException, NotFoundException, ValidationException
-)
+from shared.errors import AuthenticationException, ConflictException, PlatformException
 from shared.logger import get_logger
 from shared.models import (
-    UserCreate, PublicRegistrationRequest, UserResponse, TokenResponse, UserRole,
-    AuditLogEntry, SecurityEventEntry
+    AuditLogEntry,
+    PublicRegistrationRequest,
+    SecurityEventEntry,
+    TokenResponse,
+    UserResponse,
+    UserRole,
 )
 from shared.repository import Repository
 from shared.security import (
-    hash_password, verify_password, create_access_token,
-    create_refresh_token, decode_token, require_role
+    create_access_token,
+    create_refresh_token,
+    decode_token,
+    hash_password,
+    require_role,
+    verify_password,
 )
 
 logger = get_logger("auth-service")
@@ -42,7 +46,7 @@ AUTH_FAILURES = Counter("auth_failures_total", "Total failed login attempts", ["
 AUTH_LATENCY = Histogram("auth_request_duration_seconds", "Latency of authentication operations", ["endpoint"])
 
 
-def get_current_user(authorization: Optional[str] = Header(None)) -> dict:
+def get_current_user(authorization: str | None = Header(None)) -> dict:
     if not authorization or not authorization.startswith("Bearer "):
         raise AuthenticationException("Missing or malformed Authorization header")
     token = authorization.split(" ")[1]
@@ -67,8 +71,8 @@ async def lifespan(app: FastAPI):
                 "role": UserRole.ADMIN.value,
                 "workspace_id": "default-workspace",
                 "is_active": True,
-                "created_at": datetime.now(timezone.utc),
-                "updated_at": datetime.now(timezone.utc),
+                "created_at": datetime.now(UTC),
+                "updated_at": datetime.now(UTC),
             }
             Repository.save_user(admin_doc)
             logger.info("Default administrator account initialized: admin@bda-energy.internal")
@@ -82,8 +86,8 @@ async def lifespan(app: FastAPI):
                 "role": UserRole.ANALYST.value,
                 "workspace_id": "default-workspace",
                 "is_active": True,
-                "created_at": datetime.now(timezone.utc),
-                "updated_at": datetime.now(timezone.utc),
+                "created_at": datetime.now(UTC),
+                "updated_at": datetime.now(UTC),
             }
             Repository.save_user(analyst_doc)
             logger.info("Default analyst account initialized: analyst@bda-energy.internal")
@@ -110,7 +114,7 @@ async def platform_exception_handler(request: Request, exc: PlatformException):
 
 @app.exception_handler(Exception)
 async def generic_exception_handler(request: Request, exc: Exception):
-    logger.error(f"Unhandled internal error: {str(exc)}", exc_info=True)
+    logger.error(f"Unhandled internal error: {exc!s}", exc_info=exc)
     return JSONResponse(
         status_code=500,
         content={
@@ -167,7 +171,7 @@ def register_user(payload: PublicRegistrationRequest, request: Request):
     if Repository.get_user_by_email(payload.email):
         raise ConflictException(f"User with email '{payload.email}' already exists", request_id=corr_id)
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     user_id = str(uuid.uuid4())
     user_doc = {
         "id": user_id,
@@ -242,8 +246,8 @@ def login(creds: LoginRequest, request: Request):
             "jti": ref_payload.jti,
             "user_id": user["id"],
             "email": user["email"],
-            "created_at": datetime.now(timezone.utc),
-            "expires_at": datetime.fromtimestamp(ref_payload.exp, timezone.utc),
+            "created_at": datetime.now(UTC),
+            "expires_at": datetime.fromtimestamp(ref_payload.exp, UTC),
             "is_revoked": False,
         }
         Repository.save_session(session_record)
@@ -264,7 +268,7 @@ def login(creds: LoginRequest, request: Request):
         return TokenResponse(
             access_token=access_token,
             refresh_token=refresh_token,
-            token_type="bearer",
+            token_type="bearer",  # noqa: S106
             expires_in=900,
         )
 
@@ -322,15 +326,15 @@ def refresh_token_endpoint(payload: RefreshRequest, request: Request):
         "jti": new_ref_payload.jti,
         "user_id": user["id"],
         "email": user["email"],
-        "created_at": datetime.now(timezone.utc),
-        "expires_at": datetime.fromtimestamp(new_ref_payload.exp, timezone.utc),
+        "created_at": datetime.now(UTC),
+        "expires_at": datetime.fromtimestamp(new_ref_payload.exp, UTC),
         "is_revoked": False,
     })
 
     return TokenResponse(
         access_token=new_access,
         refresh_token=new_refresh,
-        token_type="bearer",
+        token_type="bearer",  # noqa: S106
         expires_in=900,
     )
 
@@ -362,20 +366,20 @@ def get_profile(current_user: dict = Depends(get_current_user)):
     return clean_user
 
 
-@app.get("/api/v1/auth/users", response_model=List[UserResponse])
+@app.get("/api/v1/auth/users", response_model=list[UserResponse])
 def list_users(current_user: dict = Depends(get_current_user)):
     require_role(UserRole(current_user.get("role")), [UserRole.ADMIN])
     users = Repository.list_users(workspace_id=current_user.get("workspace_id"))
     return [{k: v for k, v in u.items() if k != "hashed_password"} for u in users]
 
 
-@app.get("/api/v1/auth/audit-logs", response_model=List[AuditLogEntry])
+@app.get("/api/v1/auth/audit-logs", response_model=list[AuditLogEntry])
 def get_audit_logs(limit: int = 50, current_user: dict = Depends(get_current_user)):
     require_role(UserRole(current_user.get("role")), [UserRole.ADMIN, UserRole.ANALYST])
     return Repository.list_audit_logs(limit=limit)
 
 
-@app.get("/api/v1/auth/security-events", response_model=List[SecurityEventEntry])
+@app.get("/api/v1/auth/security-events", response_model=list[SecurityEventEntry])
 def get_security_events(limit: int = 50, current_user: dict = Depends(get_current_user)):
     require_role(UserRole(current_user.get("role")), [UserRole.ADMIN])
     return Repository.list_security_events(limit=limit)

@@ -4,11 +4,10 @@ Transforms raw UCI household electric power consumption records into validated,
 structured time series adhering to the target analytical schema.
 """
 
-from datetime import datetime, timezone
 import hashlib
 import os
 import time
-from typing import Dict, Tuple
+from datetime import UTC, datetime
 
 from shared.logger import get_logger
 from shared.models import DataQualityReport
@@ -32,7 +31,7 @@ def preprocess_dataset(
     invalid_count = 0
     missing_count = 0
     extreme_candidate_count = 0
-    rejection_reasons: Dict[str, int] = {
+    rejection_reasons: dict[str, int] = {
         "MISSING_VALUE_QUESTION_MARK": 0,
         "INVALID_COLUMN_COUNT": 0,
         "INVALID_TIMESTAMP_FORMAT": 0,
@@ -45,7 +44,7 @@ def preprocess_dataset(
 
     hasher = hashlib.sha256()
 
-    with open(input_file_path, "r", encoding="utf-8", errors="ignore") as in_f, \
+    with open(input_file_path, encoding="utf-8", errors="ignore") as in_f, \
          open(output_clean_path, "w", encoding="utf-8") as out_clean, \
          open(output_rejected_path, "w", encoding="utf-8") as out_rejected:
 
@@ -88,7 +87,9 @@ def preprocess_dataset(
             dt_obj = None
             for fmt in ("%d/%m/%Y %H:%M:%S", "%Y-%m-%d %H:%M:%S", "%d-%m-%Y %H:%M:%S"):
                 try:
-                    dt_obj = datetime.strptime(f"{d_str} {t_str}", fmt)
+                    # Dataset timestamps carry no offset; the pipeline serialises them
+                    # as UTC ('...Z' below), so bind that explicitly here.
+                    dt_obj = datetime.strptime(f"{d_str} {t_str}", fmt).replace(tzinfo=UTC)
                     break
                 except ValueError:
                     pass

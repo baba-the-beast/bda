@@ -7,22 +7,21 @@ via direct API and platform interfaces.
 
 import os
 import sys
-import json
 import time
-from typing import Optional
+
 import typer
 from rich.console import Console
-from rich.table import Table
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.table import Table
 
 # Ensure root is in path
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, BASE_DIR)
 
-from shared.models import UserRole, JobType
-from shared.repository import Repository
 from shared.hdfs import get_hdfs_client
+from shared.models import JobType, UserRole
+from shared.repository import Repository
 from shared.security import create_access_token
 
 app = typer.Typer(help="Energy Analytics Big Data Platform CLI")
@@ -67,7 +66,7 @@ def health():
     table.add_row("Hadoop MapReduce", "Compute Engine", "[green]READY[/green]", f"{len(JOB_REGISTRY)} jobs registered (Daily, Hourly, Monthly, Peak)")
 
     # Hive Check
-    from scripts.dev_server import hive_mod, stream_mod, prep_mod, dataset_mod
+    from scripts.dev_server import hive_mod, stream_mod
     table.add_row("Apache Hive", "SQL Analytics", "[green]READY[/green]", f"{len(hive_mod.APPROVED_TEMPLATES)} analytical templates ready")
 
     # Stream Check
@@ -109,7 +108,7 @@ def dataset_import(file_path: str):
     with console.status("[bold green]Importing and uploading to HDFS raw storage...[/bold green]"):
         meta = dataset_mod.import_local_dataset(req, authorization=header_auth)
 
-    console.print(f"[green]Dataset imported successfully![/green]")
+    console.print("[green]Dataset imported successfully![/green]")
     console.print(f"ID: [bold cyan]{meta.id}[/bold cyan]")
     console.print(f"SHA-256: [dim]{meta.checksum_sha256}[/dim]")
     console.print(f"HDFS Path: {meta.raw_hdfs_path}")
@@ -160,9 +159,10 @@ def dataset_preprocess(dataset_id: str):
 @mapreduce_app.command("run")
 def mapreduce_run(job_type: str, dataset_id: str):
     """Execute a MapReduce job (DAILY, HOURLY, MONTHLY, or PEAK)."""
+    from fastapi import BackgroundTasks
+
     from scripts.dev_server import job_mod
     from shared.models import AnalyticsJobCreate
-    from fastapi import BackgroundTasks
 
     jt = job_type.upper()
     if jt not in ["DAILY", "HOURLY", "MONTHLY", "PEAK"]:
@@ -180,7 +180,7 @@ def mapreduce_run(job_type: str, dataset_id: str):
 
     # Poll status until complete
     with Progress(SpinnerColumn(), TextColumn("[progress.description]{task.description}"), transient=True) as progress:
-        task = progress.add_task(f"Executing {jt} MapReduce job...", total=None)
+        progress.add_task(f"Executing {jt} MapReduce job...", total=None)
         while True:
             cur = Repository.get_job(job.id)
             if cur.status.value in ("SUCCEEDED", "FAILED", "CANCELLED"):

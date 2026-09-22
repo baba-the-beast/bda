@@ -6,12 +6,12 @@ safely extracts the raw dataset, computes cryptographic SHA-256 checksum,
 verifies header structure & record count (~2,075,259), and produces a manifest.
 """
 
-from datetime import datetime, timezone
 import hashlib
 import json
 import os
 import sys
 import zipfile
+from datetime import UTC, datetime
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 DATA_DIR = os.path.join(BASE_DIR, "data")
@@ -55,7 +55,7 @@ def safe_extract_zip(zip_path: str, extract_to_dir: str) -> str:
             )
 
         if archive_size > 0 and (total_uncompressed / archive_size) > MAX_COMPRESSION_RATIO:
-            raise ValueError(f"Abnormal compression ratio detected (potential zip bomb)")
+            raise ValueError("Abnormal compression ratio detected (potential zip bomb)")
 
         target_member = None
         for info in infolist:
@@ -91,7 +91,7 @@ def verify_extracted_data(file_path: str, sha256_hash: str) -> dict:
     first_data_line = ""
     last_data_line = ""
 
-    with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+    with open(file_path, encoding="utf-8", errors="ignore") as f:
         for idx, line in enumerate(f):
             total_lines += 1
             if idx == 0:
@@ -133,7 +133,7 @@ def verify_extracted_data(file_path: str, sha256_hash: str) -> dict:
         "missing_rows_count": missing_count,
         "first_record": first_data_line,
         "last_record": last_data_line,
-        "verified_at": datetime.now(timezone.utc).isoformat(),
+        "verified_at": datetime.now(UTC).isoformat(),
         "is_verified": True,
     }
 

@@ -4,21 +4,17 @@ Verifies defense against privilege escalation, refresh token replay,
 arbitrary path traversal, datastore fail-closed behavior, and Zip Slip attacks.
 """
 
-import io
 import os
 import tempfile
 import zipfile
-import pytest
-from pydantic import ValidationError
 
-from shared.errors import (
-    AuthenticationException, AuthorizationException,
-    DatabaseConnectionException, ValidationException
-)
+import pytest
+
+from scripts.prepare_dataset import safe_extract_zip
+from shared.errors import DatabaseConnectionException
 from shared.models import PublicRegistrationRequest, UserRole
 from shared.repository import Repository, _get_active_db
 from shared.security import create_refresh_token, decode_token
-from scripts.prepare_dataset import safe_extract_zip
 
 
 def test_public_registration_cannot_specify_role():

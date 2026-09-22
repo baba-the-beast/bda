@@ -4,7 +4,6 @@ Sets memory datastore mode and test credentials for fast, isolated test executio
 """
 
 import os
-import pytest
 
 # Ensure isolated in-memory testing mode
 os.environ["DATA_STORE_MODE"] = "memory"

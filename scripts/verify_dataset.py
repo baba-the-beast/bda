@@ -4,7 +4,6 @@ Independently verifies the presence, schema adherence, record count,
 checksum integrity, and value ranges of the extracted UCI dataset.
 """
 
-from datetime import datetime
 import hashlib
 import json
 import os
@@ -32,7 +31,7 @@ def verify_dataset(file_path: str = DEFAULT_TXT) -> bool:
     first_line = ""
     last_line = ""
 
-    with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+    with open(file_path, encoding="utf-8", errors="ignore") as f:
         for idx, line in enumerate(f):
             total_lines += 1
             hasher.update(line.encode("utf-8"))
@@ -53,7 +52,7 @@ def verify_dataset(file_path: str = DEFAULT_TXT) -> bool:
 
     # Verify manifest if exists
     if os.path.exists(MANIFEST_PATH):
-        with open(MANIFEST_PATH, "r", encoding="utf-8") as mf:
+        with open(MANIFEST_PATH, encoding="utf-8") as mf:
             manifest = json.load(mf)
         print(f"[INFO] Comparing against manifest: {MANIFEST_PATH}")
         if manifest.get("data_rows") == data_rows:

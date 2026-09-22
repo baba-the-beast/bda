@@ -5,31 +5,28 @@ for real-time streaming dashboard telemetry.
 """
 
 import asyncio
-from datetime import datetime, timezone
 import json
 import os
 import queue
 import sys
 import uuid
-from typing import List, Optional
+from datetime import UTC, datetime
 
-from fastapi import FastAPI, Header, Query, Request, Response, status
+from fastapi import FastAPI, Header, Query, Request, Response
 from fastapi.responses import JSONResponse
-from prometheus_client import Counter, Gauge, generate_latest, CONTENT_TYPE_LATEST
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, Gauge, generate_latest
 from pydantic import BaseModel, Field
 from sse_starlette.sse import EventSourceResponse
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..")))
 
-from shared.errors import (
-    PlatformException, NotFoundException, AuthorizationException,
-    AuthenticationException, ValidationException
-)
+from src.simulator import simulator_instance
+
+from shared.errors import AuthenticationException, NotFoundException, PlatformException
 from shared.logger import get_logger
-from shared.models import StreamWindow, UserRole, AuditLogEntry
+from shared.models import AuditLogEntry, StreamWindow, UserRole
 from shared.repository import Repository
 from shared.security import decode_token, require_role
-from src.simulator import simulator_instance
 
 logger = get_logger("stream-service")
 
@@ -37,7 +34,7 @@ STREAM_EVENTS_TOTAL = Counter("stream_events_emitted_total", "Total simulated st
 ACTIVE_STREAM_CLIENTS = Gauge("stream_active_sse_clients", "Number of active SSE subscribers")
 
 
-def get_current_user_context(authorization: Optional[str] = Header(None)) -> dict:
+def get_current_user_context(authorization: str | None = Header(None)) -> dict:
     if not authorization or not authorization.startswith("Bearer "):
         raise AuthenticationException("Missing or invalid Authorization header")
     token = authorization.split(" ")[1]
@@ -60,7 +57,7 @@ async def platform_exception_handler(request: Request, exc: PlatformException):
 
 @app.exception_handler(Exception)
 async def generic_exception_handler(request: Request, exc: Exception):
-    logger.error(f"Stream service unhandled error: {str(exc)}", exc_info=True)
+    logger.error(f"Stream service unhandled error: {exc!s}", exc_info=exc)
     return JSONResponse(
         status_code=500,
         content={
@@ -99,7 +96,7 @@ class StreamStartRequest(BaseModel):
 @app.post("/api/v1/stream/start")
 def start_stream(
     payload: StreamStartRequest,
-    authorization: Optional[str] = Header(None),
+    authorization: str | None = Header(None),
     request: Request = None,
 ):
     corr_id = request.headers.get("X-Correlation-ID", str(uuid.uuid4())) if request else str(uuid.uuid4())
@@ -135,7 +132,7 @@ def start_stream(
 
 @app.post("/api/v1/stream/pause")
 def pause_stream(
-    authorization: Optional[str] = Header(None),
+    authorization: str | None = Header(None),
 ):
     user = get_current_user_context(authorization)
     require_role(UserRole(user["role"]), [UserRole.ADMIN, UserRole.ANALYST])
@@ -145,7 +142,7 @@ def pause_stream(
 
 @app.post("/api/v1/stream/resume")
 def resume_stream(
-    authorization: Optional[str] = Header(None),
+    authorization: str | None = Header(None),
 ):
     user = get_current_user_context(authorization)
     require_role(UserRole(user["role"]), [UserRole.ADMIN, UserRole.ANALYST])
@@ -155,7 +152,7 @@ def resume_stream(
 
 @app.post("/api/v1/stream/stop")
 def stop_stream(
-    authorization: Optional[str] = Header(None),
+    authorization: str | None = Header(None),
     request: Request = None,
 ):
     corr_id = request.headers.get("X-Correlation-ID", str(uuid.uuid4())) if request else str(uuid.uuid4())
@@ -182,7 +179,7 @@ def get_stream_status():
     return simulator_instance.get_status()
 
 
-@app.get("/api/v1/stream/windows", response_model=List[StreamWindow])
+@app.get("/api/v1/stream/windows", response_model=list[StreamWindow])
 def get_stream_windows(
     dataset_id: str = Query(..., description="Dataset ID"),
     limit: int = Query(30, ge=1, le=100),
@@ -191,7 +188,7 @@ def get_stream_windows(
 
 
 @app.get("/api/v1/stream/live")
-async def live_stream_feed(request: Request, token: Optional[str] = Query(None)):
+async def live_stream_feed(request: Request, token: str | None = Query(None)):
     """
     Server-Sent Events (SSE) streaming endpoint.
     Transmits live smart meter readings and rolling window aggregates to UI dashboards.
@@ -208,8 +205,8 @@ async def live_stream_feed(request: Request, token: Optional[str] = Query(None))
     if jwt_token:
         try:
             decode_token(jwt_token, expected_type="access")
-        except Exception:
-            raise AuthenticationException("Invalid or expired stream authorization token.")
+        except Exception as e:
+            raise AuthenticationException("Invalid or expired stream authorization token.") from e
 
     sub_queue = simulator_instance.register_subscriber()
     ACTIVE_STREAM_CLIENTS.inc()
@@ -234,7 +231,7 @@ async def live_stream_feed(request: Request, token: Optional[str] = Query(None))
                     # Send heartbeat ping to prevent proxy connection timeouts
                     yield {
                         "event": "ping",
-                        "data": json.dumps({"timestamp": datetime.now(timezone.utc).isoformat()}),
+                        "data": json.dumps({"timestamp": datetime.now(UTC).isoformat()}),
                     }
                     await asyncio.sleep(0.5)
 

@@ -3,9 +3,10 @@ Event contracts for asynchronous distributed communication between services.
 Adheres to CloudEvents-compatible specification with correlation IDs and schema versioning.
 """
 
-from datetime import datetime, timezone
 import uuid
-from typing import Any, Dict, Optional
+from datetime import UTC, datetime
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 
@@ -13,10 +14,10 @@ class BaseEvent(BaseModel):
     event_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     event_type: str
     event_version: str = "1.0.0"
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
     producer: str
     correlation_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    payload: Dict[str, Any] = Field(default_factory=dict)
+    payload: dict[str, Any] = Field(default_factory=dict)
 
 
 class DatasetUploadedEvent(BaseEvent):

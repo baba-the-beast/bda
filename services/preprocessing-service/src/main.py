@@ -4,31 +4,25 @@ Provides automated dataset sanitization, data quality assessment,
 outlier characterization, and HDFS storage integration.
 """
 
-from datetime import datetime, timezone
 import os
 import sys
 import tempfile
 import uuid
-from typing import Optional
 
-from fastapi import FastAPI, Header, Request, Response, status
+from fastapi import FastAPI, Header, Request, Response
 from fastapi.responses import JSONResponse
-from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..")))
 
-from shared.errors import (
-    PlatformException, NotFoundException, AuthorizationException,
-    AuthenticationException, ValidationException
-)
+from src.cleaner import preprocess_dataset
+
+from shared.errors import AuthenticationException, NotFoundException, PlatformException, ValidationException
 from shared.hdfs import get_hdfs_client
 from shared.logger import get_logger
-from shared.models import (
-    DataQualityReport, DatasetMetadata, DatasetStatus, UserRole, AuditLogEntry
-)
+from shared.models import AuditLogEntry, DataQualityReport, DatasetStatus, UserRole
 from shared.repository import Repository
 from shared.security import decode_token, require_role
-from src.cleaner import preprocess_dataset
 
 logger = get_logger("preprocessing-service")
 hdfs_client = get_hdfs_client()
@@ -37,7 +31,7 @@ PREPROCESS_JOBS = Counter("preprocess_jobs_total", "Total preprocessing jobs", [
 PREPROCESS_LATENCY = Histogram("preprocess_duration_seconds", "Duration of dataset preprocessing")
 
 
-def get_current_user_context(authorization: Optional[str] = Header(None)) -> dict:
+def get_current_user_context(authorization: str | None = Header(None)) -> dict:
     if not authorization or not authorization.startswith("Bearer "):
         raise AuthenticationException("Missing or invalid Authorization header")
     token = authorization.split(" ")[1]
@@ -60,7 +54,7 @@ async def platform_exception_handler(request: Request, exc: PlatformException):
 
 @app.exception_handler(Exception)
 async def generic_exception_handler(request: Request, exc: Exception):
-    logger.error(f"Preprocessing service unhandled error: {str(exc)}", exc_info=True)
+    logger.error(f"Preprocessing service unhandled error: {exc!s}", exc_info=exc)
     return JSONResponse(
         status_code=500,
         content={
@@ -92,7 +86,7 @@ def metrics():
 @app.post("/api/v1/datasets/{dataset_id}/preprocess", response_model=DataQualityReport)
 def trigger_preprocessing(
     dataset_id: str,
-    authorization: Optional[str] = Header(None),
+    authorization: str | None = Header(None),
     request: Request = None,
 ):
     corr_id = request.headers.get("X-Correlation-ID", str(uuid.uuid4())) if request else str(uuid.uuid4())
@@ -162,8 +156,8 @@ def trigger_preprocessing(
             ds.status = DatasetStatus.FAILED
             Repository.save_dataset(ds)
             PREPROCESS_JOBS.labels(status="failure").inc()
-            logger.error(f"Preprocessing failed for dataset {dataset_id}: {str(e)}", exc_info=True)
-            raise ValidationException(f"Preprocessing failed: {str(e)}", request_id=corr_id)
+            logger.exception(f"Preprocessing failed for dataset {dataset_id}: {e!s}")
+            raise ValidationException(f"Preprocessing failed: {e!s}", request_id=corr_id) from e
         finally:
             if os.path.exists(clean_tmp_path):
                 os.remove(clean_tmp_path)
@@ -174,7 +168,7 @@ def trigger_preprocessing(
 @app.get("/api/v1/datasets/{dataset_id}/quality", response_model=DataQualityReport)
 def get_data_quality_report(
     dataset_id: str,
-    authorization: Optional[str] = Header(None),
+    authorization: str | None = Header(None),
     request: Request = None,
 ):
     corr_id = request.headers.get("X-Correlation-ID", str(uuid.uuid4())) if request else str(uuid.uuid4())

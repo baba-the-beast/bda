@@ -10,7 +10,6 @@ import os
 import shutil
 import urllib.request
 from abc import ABC, abstractmethod
-from typing import List, Optional
 
 
 class HDFSStorageClient(ABC):
@@ -35,7 +34,7 @@ class HDFSStorageClient(ABC):
         pass
 
     @abstractmethod
-    def read_lines(self, hdfs_path: str, limit: int = 100) -> List[str]:
+    def read_lines(self, hdfs_path: str, limit: int = 100) -> list[str]:
         pass
 
 
@@ -44,10 +43,11 @@ class LocalHDFSAdapter(HDFSStorageClient):
     Local filesystem HDFS adapter for development and integration testing.
     Mirrors the exact logical HDFS layout under data/hdfs/user/bda/energy/.
     """
-    def __init__(self, base_dir: Optional[str] = None):
-        self.base_dir = base_dir or os.getenv(
-            "LOCAL_HDFS_ROOT",
-            os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "hdfs"))
+    def __init__(self, base_dir: str | None = None):
+        self.base_dir: str = (
+            base_dir
+            or os.environ.get("LOCAL_HDFS_ROOT")
+            or os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "hdfs"))
         )
         self.root_prefix = "/user/bda/energy"
         os.makedirs(os.path.join(self.base_dir, "user", "bda", "energy", "raw"), exist_ok=True)
@@ -87,12 +87,12 @@ class LocalHDFSAdapter(HDFSStorageClient):
         physical = self._resolve_physical_path(logical_hdfs_path)
         return os.path.exists(physical)
 
-    def read_lines(self, logical_hdfs_path: str, limit: int = 100) -> List[str]:
+    def read_lines(self, logical_hdfs_path: str, limit: int = 100) -> list[str]:
         physical = self._resolve_physical_path(logical_hdfs_path)
         if not os.path.exists(physical):
             return []
         lines = []
-        with open(physical, "r", encoding="utf-8", errors="ignore") as f:
+        with open(physical, encoding="utf-8", errors="ignore") as f:
             for idx, line in enumerate(f):
                 if idx >= limit:
                     break
@@ -110,7 +110,7 @@ class WebHDFSClient(HDFSStorageClient):
     1. PUT to NameNode with ?op=CREATE -> captures 307 Temporary Redirect with DataNode Location
     2. PUT payload to DataNode Location URL
     """
-    def __init__(self, webhdfs_url: Optional[str] = None):
+    def __init__(self, webhdfs_url: str | None = None):
         self.webhdfs_url = webhdfs_url or os.getenv("WEBHDFS_URL", "http://namenode:9870/webhdfs/v1")
         self.user = os.getenv("HADOOP_USER_NAME", "bda")
 
@@ -148,7 +148,7 @@ class WebHDFSClient(HDFSStorageClient):
 
             return logical_path
         except Exception as e:
-            raise RuntimeError(f"WebHDFS upload failed for {logical_path}: {str(e)}")
+            raise RuntimeError(f"WebHDFS upload failed for {logical_path}: {e!s}") from e
 
     def upload_raw(self, dataset_id: str, local_file_path: str) -> str:
         logical_path = f"/user/bda/energy/raw/{dataset_id}/household_power_consumption.txt"
@@ -178,14 +178,14 @@ class WebHDFSClient(HDFSStorageClient):
         except Exception:
             return False
 
-    def read_lines(self, logical_hdfs_path: str, limit: int = 100) -> List[str]:
+    def read_lines(self, logical_hdfs_path: str, limit: int = 100) -> list[str]:
         url = f"{self.webhdfs_url}{logical_hdfs_path}?op=OPEN&length=65536&user.name={self.user}"
         try:
             req = urllib.request.Request(url, method="GET")
             with urllib.request.urlopen(req) as resp:
                 content = resp.read().decode("utf-8", errors="ignore")
                 return content.splitlines()[:limit]
-        except Exception as e:
+        except Exception:
             return []
 
     def get_local_path(self, logical_hdfs_path: str) -> str:

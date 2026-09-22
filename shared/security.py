@@ -4,8 +4,8 @@ Security utilities: Password hashing, JWT token lifecycle, and RBAC authorizatio
 
 import os
 import uuid
-from datetime import datetime, timedelta, timezone
-from typing import List, Optional
+from datetime import UTC, datetime, timedelta
+
 import jwt
 from passlib.context import CryptContext
 from pydantic import ValidationError
@@ -16,7 +16,7 @@ from shared.models import TokenPayload, UserRole
 # Cryptographic configuration: Argon2id prioritized with PBKDF2/Bcrypt backward compatibility
 pwd_context = CryptContext(schemes=["argon2", "pbkdf2_sha256", "bcrypt"], deprecated="auto")
 
-INSECURE_DEV_SECRET = "super-secret-production-key-must-be-rotated-in-production-env-32bytes"
+INSECURE_DEV_SECRET = "super-secret-production-key-must-be-rotated-in-production-env-32bytes"  # noqa: S105
 _RAW_JWT_SECRET = os.getenv("JWT_SECRET")
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development").lower()
 
@@ -57,9 +57,9 @@ def create_access_token(
     email: str,
     role: UserRole,
     workspace_id: str = "default-workspace",
-    expires_delta: Optional[timedelta] = None,
+    expires_delta: timedelta | None = None,
 ) -> str:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     expire = now + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     
     payload = {
@@ -84,7 +84,7 @@ def create_refresh_token(
     role: UserRole,
     workspace_id: str = "default-workspace",
 ) -> str:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     expire = now + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     payload = {
         "sub": user_id,
@@ -113,13 +113,13 @@ def decode_token(token: str, expected_type: str = "access") -> TokenPayload:
         if raw_payload.get("token_type") != expected_type:
             raise AuthenticationException(f"Invalid token type. Expected '{expected_type}'")
         return TokenPayload(**raw_payload)
-    except jwt.ExpiredSignatureError:
-        raise AuthenticationException("Token has expired")
+    except jwt.ExpiredSignatureError as e:
+        raise AuthenticationException("Token has expired") from e
     except (jwt.InvalidTokenError, ValidationError) as e:
-        raise AuthenticationException(f"Invalid token signature or payload: {str(e)}")
+        raise AuthenticationException(f"Invalid token signature or payload: {e!s}") from e
 
 
-def require_role(user_role: UserRole, required_roles: List[UserRole]) -> None:
+def require_role(user_role: UserRole, required_roles: list[UserRole]) -> None:
     allowed = False
     for req in required_roles:
         if req in ROLE_HIERARCHY.get(user_role, []):

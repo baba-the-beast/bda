@@ -8,23 +8,24 @@ Verifies calculation correctness across three independent implementations:
 Evaluates floating-point precision tolerance to prove exact analytical accuracy.
 """
 
-from collections import defaultdict
 import os
+import shutil
 import sys
 import tempfile
-from typing import Dict, Tuple
+from collections import defaultdict
 
 # Set path
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, BASE_DIR)
 
 from jobs.mapreduce.runner import LocalStreamingPipelineRunner
-from scripts.dev_server import prep_mod, hive_mod
+from scripts.dev_server import hive_mod, prep_mod
+
 preprocess_dataset = prep_mod.cleaner_mod.preprocess_dataset if hasattr(prep_mod, "cleaner_mod") else prep_mod.preprocess_dataset
 execute_analytical_query = hive_mod.execute_analytical_query
 
 
-def compute_local_baseline(cleaned_csv_path: str) -> Dict[str, Dict[str, float]]:
+def compute_local_baseline(cleaned_csv_path: str) -> dict[str, dict[str, float]]:
     """
     Independent baseline calculation in pure Python standard library.
     No MapReduce or SQL frameworks.
@@ -33,7 +34,7 @@ def compute_local_baseline(cleaned_csv_path: str) -> Dict[str, Dict[str, float]]
         "powers": [], "sub1": 0.0, "sub2": 0.0, "sub3": 0.0, "count": 0
     })
 
-    with open(cleaned_csv_path, "r", encoding="utf-8") as f:
+    with open(cleaned_csv_path, encoding="utf-8") as f:
         # Skip header
         f.readline()
         for line in f:
@@ -73,10 +74,12 @@ def run_correctness_verification():
         from scripts.generate_sample_data import generate_household_power_sample
         generate_household_power_sample(raw_sample, num_days=7)
 
-    # Step 1: Preprocess to clean format
-    clean_tmp = tempfile.mktemp(suffix=".csv")
-    rej_tmp = tempfile.mktemp(suffix=".log")
-    mr_out_tmp = tempfile.mktemp(suffix=".txt")
+    # Step 1: Preprocess to clean format. mkdtemp gives a private directory whose
+    # names cannot be pre-empted by another process, unlike the deprecated mktemp.
+    work_dir = tempfile.mkdtemp(prefix="bda-verify-")
+    clean_tmp = os.path.join(work_dir, "cleaned.csv")
+    rej_tmp = os.path.join(work_dir, "rejected.log")
+    mr_out_tmp = os.path.join(work_dir, "mapreduce_output.txt")
 
     try:
         print("[VERIFY] 1. Preprocessing raw benchmark dataset...")
@@ -93,7 +96,7 @@ def run_correctness_verification():
             raise RuntimeError(f"MapReduce pipeline failed: {msg}")
 
         mr_results = {}
-        with open(mr_out_tmp, "r", encoding="utf-8") as f:
+        with open(mr_out_tmp, encoding="utf-8") as f:
             for line in f:
                 parts = line.strip().split("\t")
                 if len(parts) != 2:
@@ -110,7 +113,7 @@ def run_correctness_verification():
 
         # Step 4: Compute HiveQL
         print("[VERIFY] 4. Executing Apache HiveQL Daily Aggregation Query...")
-        hive_rows, duration = execute_analytical_query("daily_aggregates", clean_tmp, {"limit": 100})
+        hive_rows, _duration = execute_analytical_query("daily_aggregates", clean_tmp, {"limit": 100})
         hive_results = {}
         for r in hive_rows:
             d_key = r["date"]
@@ -155,16 +158,14 @@ def run_correctness_verification():
         assert max_delta_kwh <= tolerance, f"Total kWh discrepancy exceeds tolerance: {max_delta_kwh}"
         assert max_delta_avg <= tolerance, f"Avg Power discrepancy exceeds tolerance: {max_delta_avg}"
 
-        print(f"\n[SUCCESS] Independent Analytics Triangulation Verified!")
+        print("\n[SUCCESS] Independent Analytics Triangulation Verified!")
         print(f"Max Total kWh Delta: {max_delta_kwh:.8f} (Tolerance: {tolerance})")
         print(f"Max Avg Power Delta: {max_delta_avg:.8f} (Tolerance: {tolerance})")
         print("Floating-point rounding differences comply with IEEE 754 standards.")
         return True
 
     finally:
-        for p in (clean_tmp, rej_tmp, mr_out_tmp):
-            if os.path.exists(p):
-                os.remove(p)
+        shutil.rmtree(work_dir, ignore_errors=True)
 
 
 if __name__ == "__main__":

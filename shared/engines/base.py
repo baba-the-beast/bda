@@ -4,7 +4,7 @@ Defines unified contracts shared across both RENDER_LITE and FULL_BDA modes.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 
 class AnalyticsEngine(ABC):
@@ -16,8 +16,8 @@ class AnalyticsEngine(ABC):
         job_type: str,
         input_path: str,
         output_path: str,
-        parameters: Optional[Dict[str, Any]] = None,
-    ) -> Tuple[bool, str]:
+        parameters: dict[str, Any] | None = None,
+    ) -> tuple[bool, str]:
         """Execute a batch analytical processing job."""
         pass
 
@@ -30,8 +30,8 @@ class HiveEngine(ABC):
         self,
         template_name: str,
         dataset_csv_path: str,
-        parameters: Optional[Dict[str, Any]] = None,
-    ) -> Tuple[List[Dict[str, Any]], float]:
+        parameters: dict[str, Any] | None = None,
+    ) -> tuple[list[dict[str, Any]], float]:
         """Execute an analytical query template and return (records, duration_seconds)."""
         pass
 
@@ -66,6 +66,6 @@ class StreamEngine(ABC):
         pass
 
     @abstractmethod
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> dict[str, Any]:
         """Get stream runtime telemetry status."""
         pass

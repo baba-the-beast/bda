@@ -5,10 +5,10 @@ any /api/* requests to the backend on port 8000 to prevent 'Unsupported method' 
 """
 
 import http.server
-import socketserver
 import os
-import urllib.request
+import socketserver
 import urllib.error
+import urllib.request
 
 PORT = 3000
 BACKEND_URL = "http://127.0.0.1:8000"
@@ -60,7 +60,7 @@ class SpaProxyHandler(http.server.SimpleHTTPRequestHandler):
             self.send_header("Content-Type", "application/json")
             self.send_header("Access-Control-Allow-Origin", "*")
             self.end_headers()
-            self.wfile.write(f'{{"error": "{str(ex)}"}}'.encode())
+            self.wfile.write(f'{{"error": "{ex!s}"}}'.encode())
 
     def do_POST(self):
         if self.path.startswith("/api/"):

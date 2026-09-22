@@ -5,9 +5,8 @@ and sub-meter calculations against a deterministic fixture.
 """
 
 import math
-import pytest
-from shared.engines.render_lite import RenderLiteAnalyticsEngine
-from shared.models import DailyAggregate, HourlyAggregate
+
+from shared.models import DailyAggregate
 
 
 def test_energy_conversion_math():

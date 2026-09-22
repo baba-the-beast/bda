@@ -3,13 +3,19 @@ Unit tests for security utilities, password hashing, JWT lifecycle, and RBAC aut
 """
 
 from datetime import timedelta
+
 import pytest
+
+from shared.errors import AuthenticationException, AuthorizationException
 from shared.models import UserRole
 from shared.security import (
-    hash_password, verify_password, create_access_token, create_refresh_token,
-    decode_token, require_role, ROLE_HIERARCHY
+    create_access_token,
+    create_refresh_token,
+    decode_token,
+    hash_password,
+    require_role,
+    verify_password,
 )
-from shared.errors import AuthenticationException, AuthorizationException
 
 
 def test_password_hashing():

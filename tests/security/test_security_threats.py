@@ -7,10 +7,11 @@ token tampering, and SQL injection payloads.
 
 import pytest
 from fastapi.testclient import TestClient
+
+from scripts.dev_server import dev_app, hive_mod
 from shared.models import UserRole
 from shared.security import create_access_token
-from shared.errors import AuthorizationException, ValidationException
-from scripts.dev_server import dev_app, hive_mod
+
 validate_query_safety = hive_mod.validate_query_safety
 
 client = TestClient(dev_app)

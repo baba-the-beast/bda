@@ -4,22 +4,18 @@ Executes MapReduce batch processing jobs, parses output tuples,
 and populates MongoDB analytical read-model collections.
 """
 
-from datetime import datetime, timezone
 import os
 import sys
 import time
-from typing import List
+from datetime import UTC, datetime
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..")))
 
-from jobs.mapreduce.runner import LocalStreamingPipelineRunner, HadoopStreamingRunner
+from jobs.mapreduce.runner import HadoopStreamingRunner
 from shared.engines.render_lite import RenderLiteAnalyticsEngine
 from shared.hdfs import get_hdfs_client
 from shared.logger import get_logger
-from shared.models import (
-    AnalyticsJobResponse, DailyAggregate, HourlyAggregate, MonthlyAggregate,
-    PeakEvent, JobStatus, JobType
-)
+from shared.models import DailyAggregate, HourlyAggregate, JobStatus, JobType, MonthlyAggregate, PeakEvent
 from shared.repository import Repository
 
 logger = get_logger("job-worker")
@@ -34,7 +30,7 @@ def execute_job_async(job_id: str):
 
     # Transition to RUNNING
     job.status = JobStatus.RUNNING
-    job.start_time = datetime.now(timezone.utc)
+    job.start_time = datetime.now(UTC)
     job.progress_percent = 10
     Repository.save_job(job)
 
@@ -76,7 +72,7 @@ def execute_job_async(job_id: str):
 
         duration = time.time() - start_ts
         job.status = JobStatus.SUCCEEDED
-        job.end_time = datetime.now(timezone.utc)
+        job.end_time = datetime.now(UTC)
         job.duration_seconds = round(duration, 3)
         job.progress_percent = 100
         job.error_message = None
@@ -86,23 +82,23 @@ def execute_job_async(job_id: str):
     except Exception as e:
         duration = time.time() - start_ts
         job.status = JobStatus.FAILED
-        job.end_time = datetime.now(timezone.utc)
+        job.end_time = datetime.now(UTC)
         job.duration_seconds = round(duration, 3)
         job.error_message = str(e)
         job.progress_percent = 0
         Repository.save_job(job)
-        logger.error(f"Job {job_id} failed: {str(e)}", exc_info=True)
+        logger.exception(f"Job {job_id} failed: {e!s}")
 
 
 def _persist_mr_results_to_mongodb(dataset_id: str, job_type: JobType, output_file_path: str):
     if not os.path.exists(output_file_path):
         raise FileNotFoundError(f"MapReduce output file not found at {output_file_path}")
 
-    with open(output_file_path, "r", encoding="utf-8") as f:
+    with open(output_file_path, encoding="utf-8") as f:
         lines = [line.strip() for line in f if line.strip()]
 
     if job_type == JobType.DAILY:
-        aggregates: List[DailyAggregate] = []
+        aggregates: list[DailyAggregate] = []
         for line in lines:
             parts = line.split("\t")
             if len(parts) != 2:
@@ -128,7 +124,7 @@ def _persist_mr_results_to_mongodb(dataset_id: str, job_type: JobType, output_fi
         Repository.save_daily_aggregates(aggregates)
 
     elif job_type == JobType.HOURLY:
-        hourly_list: List[HourlyAggregate] = []
+        hourly_list: list[HourlyAggregate] = []
         for line in lines:
             parts = line.split("\t")
             if len(parts) != 2:
@@ -151,7 +147,7 @@ def _persist_mr_results_to_mongodb(dataset_id: str, job_type: JobType, output_fi
         Repository.save_hourly_aggregates(hourly_list)
 
     elif job_type == JobType.MONTHLY:
-        monthly_list: List[MonthlyAggregate] = []
+        monthly_list: list[MonthlyAggregate] = []
         for line in lines:
             parts = line.split("\t")
             if len(parts) != 2:
@@ -176,12 +172,12 @@ def _persist_mr_results_to_mongodb(dataset_id: str, job_type: JobType, output_fi
         Repository.save_monthly_aggregates(monthly_list)
 
     elif job_type == JobType.PEAK:
-        peak_list: List[PeakEvent] = []
+        peak_list: list[PeakEvent] = []
         for line in lines:
             parts = line.split("\t")
             if len(parts) != 2:
                 continue
-            period_key, val_str = parts[0], parts[1]
+            _period_key, val_str = parts[0], parts[1]
             tokens = val_str.split(",")
             if len(tokens) != 9:
                 continue
@@ -191,7 +187,7 @@ def _persist_mr_results_to_mongodb(dataset_id: str, job_type: JobType, output_fi
             try:
                 dt = datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
             except Exception:
-                dt = datetime.now(timezone.utc)
+                dt = datetime.now(UTC)
             peak_list.append(
                 PeakEvent(
                     dataset_id=dataset_id,
