@@ -3,6 +3,7 @@ import { useState } from 'react';
 
 import { Field, Input } from '../../components/ui/Field';
 import { KeyValue } from '../../components/ui/KeyValue';
+import { PageHeader } from '../../components/ui/PageHeader';
 import { Panel, PanelBody, PanelHeader } from '../../components/ui/Panel';
 import { EmptyState } from '../../components/ui/States';
 import { Table, type Column } from '../../components/ui/Table';
@@ -111,15 +112,18 @@ export function VoltagePage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold text-text">Voltage &amp; power</h1>
-        <DatasetPicker selection={selection} />
-      </div>
+      <PageHeader
+        title="Voltage & power"
+        lede="How supply voltage tracked the current the house was drawing, band by band."
+        actions={<DatasetPicker selection={selection} />}
+      />
 
       <Panel>
         <PanelHeader
           title="Voltage band distribution"
-          source={selected === undefined ? undefined : 'Hive · voltage_intensity_correlation'}
+          source={
+            selected === undefined ? undefined : 'the Hive table voltage_intensity_correlation'
+          }
           asOf={fetchedAt}
           stale={bands.isStale && !bands.isFetching}
         />
@@ -176,7 +180,7 @@ function PowerCalculator() {
     <Panel>
       <PanelHeader
         title="Power calculator"
-        source="Calculated from the values you enter — not dataset readings"
+        source="the values you enter, not from dataset readings"
       />
       <PanelBody className="flex flex-col gap-4 md:flex-row md:items-start md:gap-8">
         <div className="grid flex-1 grid-cols-3 gap-3">

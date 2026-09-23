@@ -18,11 +18,11 @@ describe('formatValue', () => {
     expect(formatValue(18.42, 'A')).toBe('18.4 A');
   });
 
-  it('says "Not available" rather than inventing a zero', () => {
-    expect(formatValue(null, 'kW')).toBe('Not available');
-    expect(formatValue(undefined, 'kW')).toBe('Not available');
-    expect(formatValue(Number.NaN, 'kW')).toBe('Not available');
-    expect(formatValue(Number.POSITIVE_INFINITY, 'kW')).toBe('Not available');
+  it('says "not recorded" rather than inventing a zero', () => {
+    expect(formatValue(null, 'kW')).toBe('not recorded');
+    expect(formatValue(undefined, 'kW')).toBe('not recorded');
+    expect(formatValue(Number.NaN, 'kW')).toBe('not recorded');
+    expect(formatValue(Number.POSITIVE_INFINITY, 'kW')).toBe('not recorded');
   });
 
   it('keeps a real zero, which is a measurement', () => {
@@ -72,8 +72,8 @@ describe('dataset time', () => {
   });
 
   it('reports missing instants explicitly', () => {
-    expect(formatDatasetTime(null)).toBe('Not available');
-    expect(formatDatasetTime('not-a-date')).toBe('Not available');
+    expect(formatDatasetTime(null)).toBe('not recorded');
+    expect(formatDatasetTime('not-a-date')).toBe('not recorded');
   });
 });
 
@@ -86,7 +86,7 @@ describe('formatDuration', () => {
   });
 
   it('reports a missing duration explicitly', () => {
-    expect(formatDuration(null)).toBe('Not available');
+    expect(formatDuration(null)).toBe('not recorded');
   });
 });
 
@@ -98,7 +98,7 @@ describe('formatBytes', () => {
   });
 
   it('reports a missing size explicitly', () => {
-    expect(formatBytes(null)).toBe('Not available');
+    expect(formatBytes(null)).toBe('not recorded');
   });
 });
 
@@ -111,6 +111,6 @@ describe('formatRelative', () => {
   });
 
   it('reports a missing instant explicitly', () => {
-    expect(formatRelative(null, now)).toBe('Not available');
+    expect(formatRelative(null, now)).toBe('not recorded');
   });
 });

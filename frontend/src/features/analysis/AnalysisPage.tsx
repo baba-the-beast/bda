@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { BarChart } from '../../components/charts/BarChart';
 import { StackedBarChart } from '../../components/charts/StackedBarChart';
 import { TimeSeriesChart } from '../../components/charts/TimeSeriesChart';
+import { PageHeader } from '../../components/ui/PageHeader';
 import { Panel, PanelBody, PanelHeader } from '../../components/ui/Panel';
 import { EmptyState } from '../../components/ui/States';
 import { Tabs } from '../../components/ui/Tabs';
@@ -57,10 +58,11 @@ export function AnalysisPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold text-text">Consumption analysis</h1>
-        <DatasetPicker selection={selection} />
-      </div>
+      <PageHeader
+        title="Consumption analysis"
+        lede="The same readings at four resolutions: by day, by hour, by month, and by sub-meter."
+        actions={<DatasetPicker selection={selection} />}
+      />
 
       <Panel>
         <Tabs
@@ -197,7 +199,7 @@ export function AnalysisPage() {
       <Panel>
         <PanelHeader
           title="Peak power events"
-          source="Analytics · peak events"
+          source="the analytics service"
           asOf={peak.dataUpdatedAt === 0 ? null : new Date(peak.dataUpdatedAt)}
         />
         <PanelBody>

@@ -2,9 +2,11 @@ import { useQuery } from '@tanstack/react-query';
 
 import { KeyValue } from '../../components/ui/KeyValue';
 import { Metric } from '../../components/ui/Metric';
+import { PageHeader } from '../../components/ui/PageHeader';
 import { Panel, PanelBody, PanelHeader } from '../../components/ui/Panel';
 import { EmptyState } from '../../components/ui/States';
 import { apiRequest } from '../../lib/api/client';
+import { humanizeEnum } from '../../lib/format';
 import { PanelState } from '../shared/PanelState';
 
 /**
@@ -19,8 +21,8 @@ interface PlatformMetrics {
   headline: { label: string; value: string | null }[];
 }
 
-const titleCase = (key: string): string =>
-  key.replaceAll('_', ' ').replace(/^./, (c) => c.toUpperCase());
+/** Keys arrive as `total_records_processed`; a reader gets a sentence. */
+const fieldName = (key: string): string => humanizeEnum(key);
 
 const renderValue = (value: unknown): string | null => {
   if (value === null || value === undefined) return null;
@@ -47,15 +49,15 @@ function parseMetrics(payload: unknown): PlatformMetrics {
   >;
 
   const headline = HEADLINE_KEYS.filter((key) => key in raw).map((key) => ({
-    label: titleCase(key),
+    label: fieldName(key).toLowerCase(),
     value: renderValue(raw[key]),
   }));
 
   const entries = Object.entries(raw)
     .filter(([key]) => !HEADLINE_KEYS.includes(key))
     .map(([key, value]) => ({
-      label: titleCase(key),
-      value: renderValue(value) ?? 'Not available',
+      label: fieldName(key),
+      value: renderValue(value) ?? 'not recorded',
     }));
 
   return { headline, entries };
@@ -72,12 +74,15 @@ export function PlatformPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-xl font-semibold text-text">Platform metrics</h1>
+      <PageHeader
+        title="Platform metrics"
+        lede="What the services report about their own throughput, storage and health."
+      />
 
       <Panel>
         <PanelHeader
           title="Verification metrics"
-          source="Analytics service"
+          source="the analytics service"
           asOf={fetchedAt}
           stale={metrics.isStale && !metrics.isFetching}
         />

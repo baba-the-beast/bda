@@ -148,7 +148,7 @@ describe('Toast', () => {
     return (
       <Button
         onClick={() => {
-          toast({ title: 'Job submitted', description: 'ds_test · DAILY', status: 'ok' });
+          toast({ title: 'Job submitted', description: 'ds_test, DAILY', status: 'ok' });
         }}
       >
         Submit
@@ -166,7 +166,7 @@ describe('Toast', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Submit' }));
 
     expect(await screen.findByText('Job submitted')).toBeInTheDocument();
-    expect(screen.getByText('ds_test · DAILY')).toBeInTheDocument();
+    expect(screen.getByText('ds_test, DAILY')).toBeInTheDocument();
   });
 
   it('dismisses on request', async () => {

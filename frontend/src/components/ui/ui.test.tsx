@@ -79,9 +79,9 @@ describe('Metric', () => {
     expect(screen.getByText('kWh')).toBeInTheDocument();
   });
 
-  it('says "Not available" rather than showing a zero when there is no value', () => {
+  it('says "not recorded" rather than showing a zero when there is no value', () => {
     render(<Metric label="Peak load" value={null} unit="kW" />);
-    expect(screen.getByText('Not available')).toBeInTheDocument();
+    expect(screen.getByText('not recorded')).toBeInTheDocument();
     expect(screen.queryByText('0')).not.toBeInTheDocument();
   });
 
@@ -111,13 +111,17 @@ describe('Panel', () => {
     const asOf = new Date('2026-09-22T17:09:00Z');
     const { container } = render(
       <Panel>
-        <PanelHeader title="Daily aggregates" source="Hive · daily_aggregates" asOf={asOf} />
+        <PanelHeader
+          title="Daily aggregates"
+          source="the Hive table daily_aggregates"
+          asOf={asOf}
+        />
         <PanelBody>body</PanelBody>
       </Panel>,
     );
 
     expect(screen.getByRole('heading', { name: 'Daily aggregates' })).toBeInTheDocument();
-    expect(screen.getByText(/Hive · daily_aggregates/)).toBeInTheDocument();
+    expect(screen.getByText(/from the Hive table daily_aggregates/)).toBeInTheDocument();
     expect(container.querySelector('time')).toHaveAttribute('datetime', asOf.toISOString());
   });
 
@@ -168,7 +172,7 @@ const JOB_COLUMNS: Column<JobRow>[] = [
   {
     id: 'duration',
     header: 'Duration',
-    cell: (r) => (r.duration === null ? 'Not available' : `${String(r.duration)}s`),
+    cell: (r) => (r.duration === null ? 'not recorded' : `${String(r.duration)}s`),
     sortValue: (r) => r.duration,
     align: 'right',
     numeric: true,
@@ -233,10 +237,10 @@ describe('Table', () => {
     };
 
     await userEvent.click(durationHeader);
-    expect(lastCell()).toBe('Not available');
+    expect(lastCell()).toBe('not recorded');
 
     await userEvent.click(durationHeader);
-    expect(lastCell()).toBe('Not available');
+    expect(lastCell()).toBe('not recorded');
   });
 
   it('renders the empty slot instead of an empty table body', () => {

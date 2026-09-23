@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 
 import { cn } from '../../lib/cn';
+import { humanizeEnum } from '../../lib/format';
 
 import { type Status, StatusPill } from './Status';
 
@@ -71,7 +72,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           >
             <div className="flex flex-col gap-1">
               <RadixToast.Title className="flex items-center gap-2 text-sm font-medium text-text">
-                <StatusPill status={message.status}>{message.status}</StatusPill>
+                <StatusPill status={message.status}>{humanizeEnum(message.status)}</StatusPill>
                 {message.title}
               </RadixToast.Title>
               {message.description !== undefined && (

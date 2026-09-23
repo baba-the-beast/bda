@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react';
 import { TimeSeriesChart } from '../../components/charts/TimeSeriesChart';
 import { Button } from '../../components/ui/Button';
 import { Metric } from '../../components/ui/Metric';
+import { PageHeader } from '../../components/ui/PageHeader';
 import { Panel, PanelBody, PanelHeader } from '../../components/ui/Panel';
 import { EmptyState } from '../../components/ui/States';
 import { StatusPill, type Status } from '../../components/ui/Status';
@@ -109,6 +110,14 @@ export function StreamPage() {
   const latest = telemetry.readings.at(-1);
   const windowAggregate = telemetry.window;
 
+  /**
+   * Nothing has arrived on this connection yet. Four figures reading "not
+   * recorded" above two panels that both say the stream is not running is an
+   * honest screen and a useless one, so an untouched page says the one thing
+   * there is to say and offers the action instead.
+   */
+  const idle = telemetry.readings.length === 0 && windowAggregate == null;
+
   const chartSeries = useMemo(
     () => [
       {
@@ -121,15 +130,16 @@ export function StreamPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold text-text">Live stream</h1>
-        <DatasetPicker selection={selection} />
-      </div>
+      <PageHeader
+        title="Live stream"
+        lede="Readings as the meter sends them, over a single server-sent connection."
+        actions={<DatasetPicker selection={selection} />}
+      />
 
       <Panel>
         <PanelHeader
           title="Replay control"
-          source="Stream service"
+          source="the stream service"
           actions={
             <div className="flex items-center gap-2">
               <StatusPill status={connection.status}>{connection.label}</StatusPill>
@@ -147,6 +157,7 @@ export function StreamPage() {
               </Button>
               <Button
                 size="sm"
+                disabled={!subscribed}
                 icon={<Pause aria-hidden className="size-3.5" />}
                 onClick={() => {
                   control.mutate('pause');
@@ -157,6 +168,7 @@ export function StreamPage() {
               <Button
                 size="sm"
                 variant="danger"
+                disabled={!subscribed}
                 icon={<Square aria-hidden className="size-3.5" />}
                 onClick={() => {
                   control.mutate('stop');
@@ -183,97 +195,115 @@ export function StreamPage() {
             </p>
           )}
 
-          <div className="grid grid-cols-2 gap-5 md:grid-cols-4">
-            <Metric
-              label="Active power"
-              value={
-                latest === undefined
-                  ? null
-                  : formatValue(latest.global_active_power, 'kW', { withUnit: false })
-              }
-              unit="kW"
-              asOf={telemetry.lastEventAt}
-            />
-            <Metric
-              label="Voltage"
-              value={
-                latest?.voltage == null
-                  ? null
-                  : formatValue(latest.voltage, 'V', { withUnit: false })
-              }
-              unit="V"
-              asOf={telemetry.lastEventAt}
-            />
-            <Metric
-              label="1-min tumbling mean"
-              value={
-                windowAggregate?.tumbling_average_power == null
-                  ? null
-                  : formatValue(windowAggregate.tumbling_average_power, 'kW', { withUnit: false })
-              }
-              unit="kW"
-              asOf={telemetry.lastEventAt}
-            />
-            <Metric
-              label="5-min sliding mean"
-              value={
-                windowAggregate?.average_power == null
-                  ? null
-                  : formatValue(windowAggregate.average_power, 'kW', { withUnit: false })
-              }
-              unit="kW"
-              asOf={telemetry.lastEventAt}
-            />
-          </div>
-          <p className="mt-3 text-2xs text-text-subtle">
-            Window means are computed by the stream service and read from its window payload. The
-            client does not derive them.
-          </p>
-        </PanelBody>
-      </Panel>
-
-      <Panel>
-        <PanelHeader
-          title="Active power"
-          source="Live telemetry"
-          asOf={telemetry.lastEventAt}
-          stale={telemetry.status === 'reconnecting'}
-        />
-        <PanelBody>
-          {telemetry.readings.length === 0 ? (
-            <EmptyState
-              title={subscribed ? 'Waiting for the first reading' : 'Stream not running'}
-              description={
-                subscribed
-                  ? 'The replay is connected; readings will appear as they arrive.'
-                  : 'Start the replay to see live readings.'
-              }
-            />
+          {idle ? (
+            <p className="max-w-[60ch] text-sm text-text-muted">
+              {selectedId === undefined
+                ? 'Choose a dataset, then start the replay. Its readings appear here as the service sends them.'
+                : 'Start the replay. Active power, voltage and both window means appear here as the service sends them.'}
+            </p>
           ) : (
-            <TimeSeriesChart
-              title="Active power"
-              description={`Live household active power, ${String(telemetry.readings.length)} readings buffered.`}
-              unit="kW"
-              series={chartSeries}
-              height={260}
-            />
+            <div className="grid grid-cols-2 gap-5 md:grid-cols-4">
+              <Metric
+                label="active power"
+                value={
+                  latest === undefined
+                    ? null
+                    : formatValue(latest.global_active_power, 'kW', { withUnit: false })
+                }
+                unit="kW"
+                asOf={telemetry.lastEventAt}
+              />
+              <Metric
+                label="voltage"
+                value={
+                  latest?.voltage == null
+                    ? null
+                    : formatValue(latest.voltage, 'V', { withUnit: false })
+                }
+                unit="V"
+                asOf={telemetry.lastEventAt}
+              />
+              <Metric
+                label="mean over the last minute"
+                value={
+                  windowAggregate?.tumbling_average_power == null
+                    ? null
+                    : formatValue(windowAggregate.tumbling_average_power, 'kW', { withUnit: false })
+                }
+                unit="kW"
+                asOf={telemetry.lastEventAt}
+              />
+              <Metric
+                label="sliding mean, five minutes"
+                value={
+                  windowAggregate?.average_power == null
+                    ? null
+                    : formatValue(windowAggregate.average_power, 'kW', { withUnit: false })
+                }
+                unit="kW"
+                asOf={telemetry.lastEventAt}
+              />
+            </div>
+          )}
+          {!idle && (
+            <p className="mt-3 text-2xs text-text-subtle">
+              Window means are computed by the stream service and read from its window payload. The
+              client does not derive them.
+            </p>
           )}
         </PanelBody>
       </Panel>
 
-      <Panel>
-        <PanelHeader title="Recent readings" source="Live telemetry" asOf={telemetry.lastEventAt} />
-        <PanelBody className="p-0">
-          <Table
-            caption="Recent telemetry readings"
-            columns={READING_COLUMNS}
-            rows={[...telemetry.readings].reverse().slice(0, 25)}
-            rowKey={(row) => row.timestamp}
-            maxHeight="20rem"
-            empty={<EmptyState title="No readings yet" />}
-          />
-        </PanelBody>
-      </Panel>
+      {telemetry.readings.length === 0 && subscribed && (
+        <Panel>
+          <PanelBody>
+            <EmptyState
+              title="Waiting for the first reading"
+              description="The replay is connected; readings will appear as they arrive."
+            />
+          </PanelBody>
+        </Panel>
+      )}
+
+      {telemetry.readings.length > 0 && (
+        <>
+          <Panel>
+            <PanelHeader
+              title="Active power"
+              source="live telemetry"
+              asOf={telemetry.lastEventAt}
+              stale={telemetry.status === 'reconnecting'}
+            />
+            <PanelBody>
+              <TimeSeriesChart
+                title="Active power"
+                description={`Live household active power, ${String(telemetry.readings.length)} readings buffered.`}
+                unit="kW"
+                series={chartSeries}
+                height={260}
+              />
+            </PanelBody>
+          </Panel>
+
+          <Panel>
+            <PanelHeader
+              title="Recent readings"
+              source="live telemetry"
+              asOf={telemetry.lastEventAt}
+            />
+            <PanelBody className="p-0">
+              <Table
+                caption="Recent telemetry readings"
+                columns={READING_COLUMNS}
+                rows={[...telemetry.readings].reverse().slice(0, 25)}
+                rowKey={(row) => row.timestamp}
+                maxHeight="20rem"
+                empty={<EmptyState title="No readings yet" />}
+              />
+            </PanelBody>
+          </Panel>
+        </>
+      )}
     </div>
   );
 }

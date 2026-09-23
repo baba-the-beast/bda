@@ -94,7 +94,7 @@ describe('ChartFrame', () => {
 describe('series palette', () => {
   it('has eight slots assigned in a fixed order', () => {
     expect(SERIES_PALETTE).toHaveLength(8);
-    expect(SERIES_PALETTE[0]).toBe('#3987e5');
+    expect(SERIES_PALETTE[0]).toBe('#e8a53d');
   });
 
   it('contains no duplicate hues, so no two series can collide', () => {

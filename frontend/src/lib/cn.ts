@@ -1,5 +1,20 @@
 import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { extendTailwindMerge } from 'tailwind-merge';
+
+/**
+ * tailwind-merge has to be told about scale keys it cannot infer.
+ *
+ * Without this it reads `text-figure` as a text *colour* rather than a font
+ * size, and drops the real colour class next to it as a conflict — so the type
+ * silently renders at the wrong size with no error anywhere.
+ */
+const twMerge = extendTailwindMerge({
+  extend: {
+    classGroups: {
+      'font-size': [{ text: ['2xs', 'figure', 'hero'] }],
+    },
+  },
+});
 
 /**
  * Compose class names, letting a caller's utility win over a component's

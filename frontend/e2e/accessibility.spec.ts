@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 
-import { ROUTES, signIn, stubApi } from './fixtures';
+import { DATASET, ROUTES, signIn, stubApi } from './fixtures';
 
 /**
  * Accessibility pass over every route.
@@ -104,14 +104,22 @@ test.describe('data honesty', () => {
     // The stub omits peak_power_kw; the overview must say so rather than
     // showing a zero (docs/FRONTEND_AUDIT.md §3.2).
     await page.goto('/overview');
-    await expect(page.getByText('Not available').first()).toBeVisible();
+    await expect(page.getByText('not recorded').first()).toBeVisible();
   });
 
   test('every panel names its source and when it was read', async ({ page }) => {
     await signIn(page);
-    await page.goto('/overview');
 
-    await expect(page.getByText(/analytics ·/i).first()).toBeVisible();
-    await expect(page.getByText(/as of/i).first()).toBeVisible();
+    // The overview names the file its averages were taken over, and stamps the
+    // headline figure with the time it was read.
+    await page.goto('/overview');
+    await expect(
+      page.getByText(new RegExp(`Averaged across every day recorded in ${DATASET.filename}`)),
+    ).toBeVisible();
+    await expect(page.getByText(/read at/i).first()).toBeVisible();
+
+    // Panelled routes carry the same provenance in the panel header.
+    await page.goto('/platform');
+    await expect(page.getByText(/from the analytics service, read at/i).first()).toBeVisible();
   });
 });

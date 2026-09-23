@@ -26,12 +26,12 @@ const PRECISION: Record<Unit, number> = {
   s: 2,
 };
 
-const NOT_AVAILABLE = 'Not available';
+const NOT_RECORDED = 'not recorded';
 
 /**
  * Format a measurement.
  *
- * `null` and `undefined` become an explicit "Not available" rather than 0 or a
+ * `null` and `undefined` become an explicit "not recorded" rather than 0 or a
  * dash that reads as a real reading (docs/FRONTEND_AUDIT.md §3.2).
  */
 export function formatValue(
@@ -40,7 +40,7 @@ export function formatValue(
   options: { withUnit?: boolean } = {},
 ): string {
   if (value === null || value === undefined || !Number.isFinite(value)) {
-    return NOT_AVAILABLE;
+    return NOT_RECORDED;
   }
 
   const digits = PRECISION[unit];
@@ -74,7 +74,7 @@ export function formatDatasetTime(
   options: { withZone?: boolean; withSeconds?: boolean } = {},
 ): string {
   const date = toDate(value);
-  if (date === null) return NOT_AVAILABLE;
+  if (date === null) return NOT_RECORDED;
 
   const formatted = new Intl.DateTimeFormat(undefined, {
     timeZone: DATASET_TIME_ZONE,
@@ -89,7 +89,7 @@ export function formatDatasetTime(
 
 export function formatDatasetDate(value: Date | string | number | null | undefined): string {
   const date = toDate(value);
-  if (date === null) return NOT_AVAILABLE;
+  if (date === null) return NOT_RECORDED;
   return new Intl.DateTimeFormat(undefined, {
     timeZone: DATASET_TIME_ZONE,
     year: 'numeric',
@@ -101,7 +101,7 @@ export function formatDatasetDate(value: Date | string | number | null | undefin
 /** Wall-clock time of the viewer, for "as of" stamps rather than dataset instants. */
 export function formatClockTime(value: Date | string | number | null | undefined): string {
   const date = toDate(value);
-  if (date === null) return NOT_AVAILABLE;
+  if (date === null) return NOT_RECORDED;
   return new Intl.DateTimeFormat(undefined, {
     hour: '2-digit',
     minute: '2-digit',
@@ -113,7 +113,7 @@ export function formatClockTime(value: Date | string | number | null | undefined
 /** Elapsed time, chosen so a job duration reads naturally at any scale. */
 export function formatDuration(seconds: number | null | undefined): string {
   if (seconds === null || seconds === undefined || !Number.isFinite(seconds)) {
-    return NOT_AVAILABLE;
+    return NOT_RECORDED;
   }
   if (seconds < 1) return `${String(Math.round(seconds * 1000))} ms`;
   if (seconds < 60) return `${seconds.toFixed(2)} s`;
@@ -128,7 +128,7 @@ export function formatDuration(seconds: number | null | undefined): string {
 
 /** Byte size for dataset listings. */
 export function formatBytes(bytes: number | null | undefined): string {
-  if (bytes === null || bytes === undefined || !Number.isFinite(bytes)) return NOT_AVAILABLE;
+  if (bytes === null || bytes === undefined || !Number.isFinite(bytes)) return NOT_RECORDED;
   if (bytes < 1024) return `${String(bytes)} B`;
 
   const units = ['kB', 'MB', 'GB', 'TB'];
@@ -147,7 +147,7 @@ export function formatRelative(
   now: Date = new Date(),
 ): string {
   const date = toDate(value);
-  if (date === null) return NOT_AVAILABLE;
+  if (date === null) return NOT_RECORDED;
 
   const seconds = Math.round((date.getTime() - now.getTime()) / 1000);
   const relative = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
@@ -157,4 +157,17 @@ export function formatRelative(
   if (absolute < 3600) return relative.format(Math.round(seconds / 60), 'minute');
   if (absolute < 86400) return relative.format(Math.round(seconds / 3600), 'hour');
   return relative.format(Math.round(seconds / 86400), 'day');
+}
+
+/**
+ * Render an API enum as prose: `PARTIALLY_PROCESSED` becomes "Partially
+ * processed".
+ *
+ * The wire value is what the services speak and is never rewritten; this is
+ * only how it is set on screen. Tracked-out capitals are how a screen announces
+ * that a machine wrote it, and nothing here needs announcing that way.
+ */
+export function humanizeEnum(value: string): string {
+  const words = value.trim().toLowerCase().replace(/[_-]+/g, ' ');
+  return words.charAt(0).toUpperCase() + words.slice(1);
 }

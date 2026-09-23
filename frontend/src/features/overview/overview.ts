@@ -6,7 +6,7 @@ import { analytics } from '../../lib/api/endpoints';
  * The overview endpoint returns an untyped dict, so it has no generated schema
  * (see BR-5 in docs/FRONTEND_BACKEND_REQUESTS.md). Its payload is narrowed here
  * at the boundary instead of being assumed, and any field the service omits
- * stays null so the UI says "Not available" rather than showing a zero.
+ * stays null so the UI says "not recorded" rather than showing a zero.
  */
 export interface OverviewSummary {
   datasetId: string | null;

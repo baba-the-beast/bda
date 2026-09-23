@@ -17,7 +17,10 @@ export function Panel({ className, children, ...props }: PanelProps) {
 
 export interface PanelHeaderProps {
   title: string;
-  /** Where the numbers came from, e.g. "Hive · daily_aggregates". */
+  /**
+   * Where the numbers came from, as a noun phrase that completes "from …",
+   * e.g. "the Hive table daily_aggregates".
+   */
   source?: string | undefined;
   /** When the data was fetched. Rendered as a machine-readable <time>. */
   asOf?: Date | string | null | undefined;
@@ -53,12 +56,12 @@ export function PanelHeader({
       <div className="flex flex-col gap-0.5">
         <h2 className="text-sm font-semibold text-text">{title}</h2>
         {(source !== undefined || asOfValid) && (
-          <p className="flex items-center gap-1.5 text-2xs text-text-subtle">
-            {source !== undefined && <span>{source}</span>}
-            {source !== undefined && asOfValid && <span aria-hidden>·</span>}
+          <p className="text-2xs text-text-subtle">
+            {source !== undefined && <>from {source}</>}
+            {source !== undefined && asOfValid && ', '}
             {asOfValid && (
               <>
-                <span>as of</span>
+                read at{' '}
                 <time dateTime={asOfDate.toISOString()}>
                   {asOfDate.toLocaleTimeString(undefined, {
                     hour: '2-digit',
@@ -68,7 +71,7 @@ export function PanelHeader({
                 </time>
               </>
             )}
-            {stale && <span className="text-warning">· stale</span>}
+            {stale && <span className="text-warning"> — stale</span>}
           </p>
         )}
       </div>

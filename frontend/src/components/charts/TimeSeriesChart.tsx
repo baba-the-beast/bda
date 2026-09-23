@@ -133,14 +133,28 @@ export function TimeSeriesChart({
             dataZoom: [
               { type: 'inside', throttle: 50 },
               {
+                // A brush, not a scrollbar: the selected span is a faint tint of
+                // the series colour on the page's own surface, and the slab of
+                // slate the default draws is removed entirely.
                 type: 'slider',
-                height: 18,
+                height: 16,
                 bottom: 0,
-                borderColor: chrome.border,
-                backgroundColor: chrome.surfaceRaised,
-                fillerColor: 'rgb(57 135 229 / 0.15)',
-                handleStyle: { color: chrome.textSubtle },
+                borderColor: 'transparent',
+                backgroundColor: 'transparent',
+                fillerColor: 'rgb(232 165 61 / 0.12)',
+                dataBackground: {
+                  lineStyle: { color: chrome.border, width: 1 },
+                  areaStyle: { color: 'transparent' },
+                },
+                selectedDataBackground: {
+                  lineStyle: { color: SERIES_PALETTE[0], width: 1, opacity: 0.7 },
+                  areaStyle: { color: 'transparent' },
+                },
+                handleStyle: { color: chrome.surfaceRaised, borderColor: chrome.borderStrong },
+                moveHandleStyle: { color: chrome.border },
+                emphasis: { handleStyle: { borderColor: SERIES_PALETTE[0] } },
                 textStyle: { color: chrome.textSubtle, fontSize: 10 },
+                brushSelect: false,
               },
             ],
           }

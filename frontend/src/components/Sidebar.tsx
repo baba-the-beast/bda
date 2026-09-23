@@ -58,9 +58,11 @@ interface NavItem {
  * folds them into `jobs` and `analysis` as tabs in Phase 5; routing them here
  * keeps the functionality reachable until then (docs/FRONTEND_AUDIT.md §5).
  */
-const SECTIONS: { heading: string; items: NavItem[] }[] = [
+const SECTIONS: { heading: string | null; items: NavItem[] }[] = [
+  // The landing route is its own group, but a heading reading "Overview" above
+  // a single item called "Overview" tells the reader nothing, so it has none.
   {
-    heading: 'Overview',
+    heading: null,
     items: [{ id: 'overview', label: 'Overview', Icon: LayoutDashboard }],
   },
   {
@@ -108,10 +110,10 @@ export function Sidebar({ currentPage, onSelectPage, userRole }: SidebarProps) {
         if (items.length === 0) return null;
 
         return (
-          <div key={section.heading} className="flex flex-col gap-0.5">
-            <h2 className="px-3 pb-1 text-2xs font-medium uppercase tracking-wide text-text-subtle">
-              {section.heading}
-            </h2>
+          <div key={section.heading ?? 'start'} className="flex flex-col gap-0.5">
+            {section.heading !== null && (
+              <h2 className="px-3 pb-1 text-2xs text-text-subtle">{section.heading}</h2>
+            )}
 
             {items.map(({ id, label, Icon, badge }) => {
               const active = currentPage === id;

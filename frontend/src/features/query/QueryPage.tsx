@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Button } from '../../components/ui/Button';
 import { Field, Input } from '../../components/ui/Field';
 import { KeyValue } from '../../components/ui/KeyValue';
+import { PageHeader } from '../../components/ui/PageHeader';
 import { Panel, PanelBody, PanelHeader } from '../../components/ui/Panel';
 import { Select } from '../../components/ui/Select';
 import { EmptyState } from '../../components/ui/States';
@@ -39,7 +40,7 @@ function parseTemplates(payload: unknown): TemplateSummary[] {
 type ResultRow = Record<string, unknown>;
 
 const cellText = (value: unknown): string => {
-  if (value === null || value === undefined) return 'Not available';
+  if (value === null || value === undefined) return 'not recorded';
   if (typeof value === 'number') {
     return value.toLocaleString(undefined, { maximumFractionDigits: 4 });
   }
@@ -99,13 +100,14 @@ export function QueryPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold text-text">Hive query lab</h1>
-        <DatasetPicker selection={selection} />
-      </div>
+      <PageHeader
+        title="Hive query lab"
+        lede="Run one of the saved queries against a dataset and read the rows it returns."
+        actions={<DatasetPicker selection={selection} />}
+      />
 
       <Panel>
-        <PanelHeader title="Run a template" source="Hive query service" />
+        <PanelHeader title="Run a template" source="the Hive query service" />
         <PanelBody className="flex flex-col gap-4">
           <div className="grid gap-3 md:grid-cols-4">
             <div className="md:col-span-2">
@@ -175,7 +177,7 @@ export function QueryPage() {
       <Panel>
         <PanelHeader
           title="Results"
-          source={result === null ? undefined : `Hive · ${result.template_name}`}
+          source={result === null ? undefined : `the Hive template ${result.template_name}`}
           asOf={result === null ? null : new Date()}
         />
         <PanelBody className="p-0">

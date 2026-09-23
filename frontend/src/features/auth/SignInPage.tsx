@@ -127,7 +127,7 @@ export function SignInPage() {
 
         {DEMO_MODE && (
           <div className="mt-6 border-t border-border pt-4">
-            <p className="mb-2 text-2xs uppercase tracking-wide text-text-subtle">Demo accounts</p>
+            <p className="mb-2 text-xs text-text-subtle">Demo accounts</p>
             <div className="flex gap-2">
               {DEMO_ACCOUNTS.map((account) => (
                 <Button

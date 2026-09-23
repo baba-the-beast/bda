@@ -8,13 +8,20 @@ import { Dialog } from '../../components/ui/Dialog';
 import { Field, Input } from '../../components/ui/Field';
 import { KeyValue } from '../../components/ui/KeyValue';
 import { Metric } from '../../components/ui/Metric';
+import { PageHeader } from '../../components/ui/PageHeader';
 import { Panel, PanelBody, PanelHeader } from '../../components/ui/Panel';
 import { EmptyState } from '../../components/ui/States';
 import { StatusPill, type Status } from '../../components/ui/Status';
 import { Table, type Column } from '../../components/ui/Table';
 import { useToast } from '../../components/ui/Toast';
 import { datasets, type DataQualityReport, type Dataset } from '../../lib/api/endpoints';
-import { formatBytes, formatDatasetDate, formatDuration, formatValue } from '../../lib/format';
+import {
+  formatBytes,
+  formatDatasetDate,
+  formatDuration,
+  formatValue,
+  humanizeEnum,
+} from '../../lib/format';
 import { PanelState } from '../shared/PanelState';
 
 import { datasetsQueryKey, useDatasetSelection } from './useDatasetSelection';
@@ -77,7 +84,9 @@ export function DatasetsPage() {
       id: 'status',
       header: 'Status',
       cell: (row) => (
-        <StatusPill status={STATUS_TONE[row.status] ?? 'neutral'}>{row.status}</StatusPill>
+        <StatusPill status={STATUS_TONE[row.status] ?? 'neutral'}>
+          {humanizeEnum(row.status)}
+        </StatusPill>
       ),
       sortValue: (row) => row.status,
     },
@@ -119,22 +128,25 @@ export function DatasetsPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold text-text">Datasets &amp; quality</h1>
-        <Button
-          variant="primary"
-          size="sm"
-          icon={<Upload aria-hidden className="size-3.5" />}
-          onClick={() => {
-            setUploadOpen(true);
-          }}
-        >
-          Upload dataset
-        </Button>
-      </div>
+      <PageHeader
+        title="Datasets & quality"
+        lede="Every meter file that has been uploaded, and what the cleaner made of it."
+        actions={
+          <Button
+            variant="primary"
+            size="sm"
+            icon={<Upload aria-hidden className="size-3.5" />}
+            onClick={() => {
+              setUploadOpen(true);
+            }}
+          >
+            Upload dataset
+          </Button>
+        }
+      />
 
       <Panel>
-        <PanelHeader title="Datasets" source="Dataset service" />
+        <PanelHeader title="Datasets" source="the dataset service" />
         <PanelBody className="p-0">
           <PanelState
             isLoading={selection.isLoading}
@@ -180,12 +192,12 @@ export function DatasetsPage() {
                 { label: 'Size', value: formatBytes(selected.size_bytes) },
                 {
                   label: 'Raw HDFS',
-                  value: selected.raw_hdfs_path ?? 'Not available',
+                  value: selected.raw_hdfs_path ?? 'not recorded',
                   mono: true,
                 },
                 {
                   label: 'Cleaned HDFS',
-                  value: selected.cleaned_hdfs_path ?? 'Not available',
+                  value: selected.cleaned_hdfs_path ?? 'not recorded',
                   mono: true,
                 },
               ]}
@@ -212,7 +224,7 @@ function QualityReportPanel({ report }: { report: DataQualityReport | null }) {
 
   return (
     <Panel>
-      <PanelHeader title="Data quality" source="Preprocessing service" />
+      <PanelHeader title="Data quality" source="the preprocessing service" />
       <PanelBody>
         {report === null ? (
           <EmptyState
@@ -222,11 +234,11 @@ function QualityReportPanel({ report }: { report: DataQualityReport | null }) {
         ) : (
           <div className="flex flex-col gap-5">
             <div className="grid grid-cols-2 gap-5 md:grid-cols-4">
-              <Metric label="Rows read" value={report.total_input_rows.toLocaleString()} />
-              <Metric label="Valid rows" value={report.valid_rows.toLocaleString()} />
-              <Metric label="Rejected rows" value={report.rejected_rows.toLocaleString()} />
+              <Metric label="rows read" value={report.total_input_rows.toLocaleString()} />
+              <Metric label="rows the cleaner kept" value={report.valid_rows.toLocaleString()} />
+              <Metric label="rows it refused" value={report.rejected_rows.toLocaleString()} />
               <Metric
-                label="Processing time"
+                label="spent cleaning"
                 value={formatDuration(report.processing_duration_sec)}
               />
             </div>
@@ -237,7 +249,7 @@ function QualityReportPanel({ report }: { report: DataQualityReport | null }) {
                   label: 'Valid share',
                   value:
                     report.total_input_rows === 0
-                      ? 'Not available'
+                      ? 'not recorded'
                       : formatValue((report.valid_rows / report.total_input_rows) * 100, '%'),
                 },
                 { label: 'Missing values', value: report.missing_value_rows.toLocaleString() },
@@ -290,7 +302,7 @@ function UploadDialog({
     onSuccess: (dataset) => {
       toast({
         title: 'Dataset uploaded',
-        description: `${dataset.filename} · ${formatBytes(dataset.size_bytes)}`,
+        description: `${dataset.filename}, ${formatBytes(dataset.size_bytes)}`,
         status: 'ok',
       });
       void queryClient.invalidateQueries({ queryKey: datasetsQueryKey });
@@ -360,7 +372,7 @@ function UploadDialog({
 
       {file !== null && (
         <p className="mt-3 text-2xs text-text-muted">
-          {file.name} · {formatBytes(file.size)}
+          {file.name}, {formatBytes(file.size)}
         </p>
       )}
     </Dialog>

@@ -32,7 +32,7 @@ export function Field({ label, hint, error, required, children }: FieldProps) {
 
   return (
     <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-2xs font-medium uppercase tracking-wide text-text-muted">
+      <label htmlFor={id} className="text-xs text-text-muted">
         {label}
         {required === true && (
           <span aria-hidden className="ml-1 text-critical">

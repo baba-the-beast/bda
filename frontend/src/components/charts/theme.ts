@@ -1,28 +1,37 @@
 /**
  * Chart theme.
  *
- * The series palette is the documented eight-hue categorical order, stepped for
- * a dark surface. It was validated with the dataviz skill's checker against
- * this app's own chart surface (#111921), not eyeballed:
+ * The series palette is generated in OKLCh inside the hue range the rest of the
+ * product lives in — ember through amber to bronze, verdigris, night blue, and
+ * plum — and then checked, not eyeballed. Slot 1 is the filament amber, because
+ * a single-series chart only ever uses slot 1 and that is the colour the app is
+ * built around.
  *
- *   lightness band  PASS   all 8 inside L 0.48-0.67
+ * Checked against this app's panel surface (#1f1c24) over EVERY pair of slots,
+ * simulating each dichromacy at full severity:
+ *
+ *   lightness band  PASS   L 0.56-0.80
  *   chroma floor    PASS   all 8 >= 0.10
- *   CVD separation  PASS   worst adjacent pair dE 8.4 (protanopia)
- *   normal vision   PASS   worst adjacent pair dE 19.3
- *   contrast        PASS   all 8 >= 3:1 on the surface
+ *   all pairs       PASS   worst dE 7.8 (mint/periwinkle, tritanopia)
+ *   contrast        PASS   all 8 >= 3.42:1 on the surface, >= 3.8:1 on canvas
+ *
+ * The previous set was only ever checked on *adjacent* pairs. It scored 1.5 on
+ * this all-pairs measure: its three warm slots were mutually indistinguishable
+ * under protanopia whenever a legend put them apart. Lightness has to carry
+ * some of the separation, which is why these eight are not one flat band.
  *
  * Slots are assigned in order and never cycled. A ninth series folds into
  * "Other" or becomes a small multiple; it does not get a generated hue.
  */
 export const SERIES_PALETTE = [
-  '#3987e5', // 1 blue
-  '#d95926', // 2 orange
-  '#199e70', // 3 aqua
-  '#c98500', // 4 yellow
-  '#d55181', // 5 magenta
-  '#008300', // 6 green
-  '#9085e9', // 7 violet
-  '#e66767', // 8 red
+  '#e8a53d', // 1 filament amber
+  '#4f6cc8', // 2 deep indigo
+  '#5ed3a3', // 3 verdigris
+  '#a8528f', // 4 plum
+  '#a7baff', // 5 periwinkle
+  '#8a7a1e', // 6 bronze
+  '#1ca4e2', // 7 sky
+  '#e17174', // 8 ember red
 ] as const;
 
 export const MAX_SERIES = SERIES_PALETTE.length;
@@ -42,18 +51,20 @@ export interface ChartChrome {
   textMuted: string;
   textSubtle: string;
   border: string;
+  borderStrong: string;
   surface: string;
   surfaceRaised: string;
 }
 
 export function readChrome(): ChartChrome {
   return {
-    text: token('--color-text', 'rgb(226 234 242)'),
-    textMuted: token('--color-text-muted', 'rgb(155 172 189)'),
-    textSubtle: token('--color-text-subtle', 'rgb(122 139 155)'),
-    border: token('--color-border', 'rgb(42 55 68)'),
-    surface: token('--color-surface', 'rgb(17 25 33)'),
-    surfaceRaised: token('--color-surface-raised', 'rgb(26 36 45)'),
+    text: token('--color-text', 'rgb(237 232 228)'),
+    textMuted: token('--color-text-muted', 'rgb(167 159 169)'),
+    textSubtle: token('--color-text-subtle', 'rgb(147 138 150)'),
+    border: token('--color-border', 'rgb(48 43 55)'),
+    borderStrong: token('--color-border-strong', 'rgb(72 65 81)'),
+    surface: token('--color-surface', 'rgb(31 28 36)'),
+    surfaceRaised: token('--color-surface-raised', 'rgb(41 36 48)'),
   };
 }
 

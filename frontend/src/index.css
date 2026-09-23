@@ -1,12 +1,11 @@
 /* Self-hosted fonts: no CDN, so the app satisfies the gateway's
    `default-src 'self'` CSP (docs/FRONTEND_AUDIT.md §3.3). */
-@import '@fontsource/inter/latin-400.css';
-@import '@fontsource/inter/latin-500.css';
-@import '@fontsource/inter/latin-600.css';
-@import '@fontsource/inter/latin-700.css';
-@import '@fontsource/jetbrains-mono/latin-400.css';
-@import '@fontsource/jetbrains-mono/latin-500.css';
-@import '@fontsource/jetbrains-mono/latin-600.css';
+@import '@fontsource/instrument-sans/latin-400.css';
+@import '@fontsource/instrument-sans/latin-500.css';
+@import '@fontsource/instrument-sans/latin-600.css';
+@import '@fontsource/instrument-sans/latin-700.css';
+@import '@fontsource/ibm-plex-mono/latin-400.css';
+@import '@fontsource/ibm-plex-mono/latin-500.css';
 
 @import './styles/tokens.css';
 
@@ -51,5 +50,24 @@
 
   ::selection {
     background-color: rgb(var(--color-accent) / 0.3);
+  }
+}
+
+@layer components {
+  /**
+   * The single piece of non-user-triggered motion in the app: the day curve
+   * draws itself once when the overview route loads. Everything else moves only
+   * in answer to something a person did.
+   */
+  .day-curve-trace {
+    stroke-dasharray: 2400;
+    stroke-dashoffset: 2400;
+    animation: draw-trace 1100ms var(--ease-out) forwards;
+  }
+
+  @keyframes draw-trace {
+    to {
+      stroke-dashoffset: 0;
+    }
   }
 }

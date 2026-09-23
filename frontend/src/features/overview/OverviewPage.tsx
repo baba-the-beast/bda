@@ -1,42 +1,47 @@
 import { useQuery } from '@tanstack/react-query';
-import { ArrowRight } from 'lucide-react';
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 
 import { Button } from '../../components/ui/Button';
 import { Metric } from '../../components/ui/Metric';
-import { Panel, PanelBody, PanelHeader } from '../../components/ui/Panel';
+import { PageHeader } from '../../components/ui/PageHeader';
 import { EmptyState } from '../../components/ui/States';
-import { StatusPill, type Status } from '../../components/ui/Status';
-import { jobs } from '../../lib/api/endpoints';
+import { analytics, jobs } from '../../lib/api/endpoints';
 import { formatValue } from '../../lib/format';
 import { useDatasetSelection } from '../datasets/useDatasetSelection';
 import { DatasetPicker } from '../shared/DatasetPicker';
 import { PanelState } from '../shared/PanelState';
 
+import { buildDayShape, DayCurve } from './DayCurve';
 import { useOverview } from './overview';
 
-/** The pipeline this platform implements, in the order data moves through it. */
-const PIPELINE_STAGES = [
-  { id: 'ingest', label: 'Ingest', detail: 'Upload to HDFS', route: '/datasets' },
-  { id: 'clean', label: 'Clean', detail: 'Quality report', route: '/datasets' },
-  { id: 'batch', label: 'Batch', detail: 'MapReduce jobs', route: '/jobs' },
-  { id: 'query', label: 'Query', detail: 'Hive templates', route: '/query' },
-  { id: 'stream', label: 'Stream', detail: 'Live telemetry', route: '/stream' },
+/** The route each pipeline stage leads to, in the order data moves through it. */
+const STAGES = [
+  { id: 'ingest', name: 'Ingest', route: '/datasets' },
+  { id: 'clean', name: 'Clean', route: '/datasets' },
+  { id: 'batch', name: 'Batch', route: '/jobs' },
+  { id: 'query', name: 'Query', route: '/query' },
+  { id: 'stream', name: 'Stream', route: '/stream' },
 ] as const;
 
 /**
  * Landing route.
  *
- * Every figure here is either from the API or explicitly "Not available". The
- * previous shell surrounded this page with five invented readouts — grid
- * frequency, ingest p99, trips, cluster node, sync state — which are gone
- * (docs/FRONTEND_AUDIT.md F2).
+ * Opens on the shape of a day in this household, because that is the most
+ * characteristic thing in this dataset's world — when the family wakes, leaves,
+ * returns and sleeps, read straight off the hourly aggregate. The figures sit
+ * beneath it as a reading of that curve rather than as four identical tiles.
  */
 export function OverviewPage() {
   const selection = useDatasetSelection();
   const { selected, selectedId } = selection;
 
   const overview = useOverview(selectedId);
+  const hourly = useQuery({
+    queryKey: ['analytics', 'hourly', selectedId] as const,
+    queryFn: () => analytics.hourly(selectedId ?? ''),
+    enabled: selectedId !== undefined,
+  });
   const jobList = useQuery({
     queryKey: ['jobs', selectedId] as const,
     queryFn: () => jobs.list(selectedId),
@@ -46,145 +51,181 @@ export function OverviewPage() {
   const summary = overview.data;
   const fetchedAt = overview.dataUpdatedAt === 0 ? null : new Date(overview.dataUpdatedAt);
 
-  /** A stage is only "done" if the dataset's own status says so. */
-  const stageStatus = (stageId: string): { status: Status; label: string } => {
-    if (selected === undefined) return { status: 'neutral', label: 'No dataset' };
+  const hours = useMemo(
+    () => (hourly.data ?? []).map((row) => ({ hour: row.hour, averagePowerKw: row.average_power })),
+    [hourly.data],
+  );
 
-    switch (stageId) {
+  /** The same reading the curve is drawn from, set as a sentence. */
+  const shape = useMemo(() => buildDayShape(hours), [hours]);
+  const hhmm = (hour: number) => `${String(hour).padStart(2, '0')}:00`;
+
+  /** Each stage reports what the data says about it, never an assumed state. */
+  const stageState = (id: string): { done: boolean; note: string } => {
+    if (selected === undefined) return { done: false, note: 'no dataset' };
+    switch (id) {
       case 'ingest':
-        return { status: 'ok', label: 'Uploaded' };
-      case 'clean':
-        return selected.status === 'PROCESSED' || selected.quality_report != null
-          ? { status: 'ok', label: 'Cleaned' }
-          : { status: 'warning', label: 'Not run' };
-      case 'batch': {
-        const succeeded = (jobList.data ?? []).filter((j) => j.status === 'SUCCEEDED').length;
-        if (jobList.data === undefined) return { status: 'neutral', label: 'Unknown' };
-        return succeeded > 0
-          ? { status: 'ok', label: `${String(succeeded)} succeeded` }
-          : { status: 'warning', label: 'None run' };
+        return { done: true, note: 'uploaded' };
+      case 'clean': {
+        const cleaned = selected.status === 'PROCESSED' || selected.quality_report != null;
+        return { done: cleaned, note: cleaned ? 'cleaned' : 'not run' };
       }
-      case 'query':
-        return { status: 'info', label: 'On demand' };
-      case 'stream':
-        return { status: 'info', label: 'On demand' };
+      case 'batch': {
+        if (jobList.data === undefined) return { done: false, note: 'unknown' };
+        const ok = jobList.data.filter((j) => j.status === 'SUCCEEDED').length;
+        return { done: ok > 0, note: ok > 0 ? `${String(ok)} jobs` : 'none run' };
+      }
       default:
-        return { status: 'neutral', label: 'Unknown' };
+        return { done: false, note: 'on demand' };
     }
   };
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold text-text">Overview</h1>
-        <DatasetPicker selection={selection} />
-      </div>
+    <div className="mx-auto flex max-w-6xl flex-col gap-10">
+      <PageHeader
+        title="A day in this house"
+        lede={
+          selected === undefined
+            ? 'One household near Paris, metered every minute.'
+            : `Averaged across every day recorded in ${selected.filename}.`
+        }
+        actions={<DatasetPicker selection={selection} />}
+      />
 
-      <Panel>
-        <PanelHeader
-          title="Consumption summary"
-          source={selected === undefined ? undefined : `Analytics · ${selected.filename}`}
-          asOf={fetchedAt}
-          stale={overview.isStale && !overview.isFetching}
-        />
-        <PanelBody>
-          <PanelState
-            isLoading={overview.isLoading || selection.isLoading}
-            error={overview.error ?? selection.error}
-            isEmpty={selection.datasets.length === 0}
-            empty={
-              <EmptyState
-                title="No datasets yet"
-                description="Upload a meter reading file to begin."
-                action={
-                  <Button asChild size="sm" variant="primary">
-                    <Link to="/datasets">Go to datasets</Link>
-                  </Button>
-                }
-              />
+      <PanelState
+        isLoading={selection.isLoading || overview.isLoading}
+        error={selection.error ?? overview.error}
+        isEmpty={selection.datasets.length === 0}
+        empty={
+          <EmptyState
+            title="Nothing recorded yet"
+            description="Upload a meter reading file and the house starts telling you about itself."
+            action={
+              <Button asChild variant="primary" size="sm">
+                <Link to="/datasets">Upload a dataset</Link>
+              </Button>
             }
-            onRetry={() => void overview.refetch()}
-          >
-            <div className="grid grid-cols-2 gap-5 md:grid-cols-4">
-              <Metric
-                label="Total consumption"
-                value={
-                  summary?.totalConsumptionKwh == null
-                    ? null
-                    : formatValue(summary.totalConsumptionKwh, 'kWh', { withUnit: false })
-                }
-                unit="kWh"
-                asOf={fetchedAt}
-              />
-              <Metric
-                label="Average power"
-                value={
-                  summary?.averagePowerKw == null
-                    ? null
-                    : formatValue(summary.averagePowerKw, 'kW', { withUnit: false })
-                }
-                unit="kW"
-                asOf={fetchedAt}
-              />
-              <Metric
-                label="Peak power"
-                value={
-                  summary?.peakPowerKw == null
-                    ? null
-                    : formatValue(summary.peakPowerKw, 'kW', { withUnit: false })
-                }
-                unit="kW"
-                asOf={fetchedAt}
-              />
-              <Metric
-                label="Days aggregated"
-                value={
-                  summary?.daysAggregated == null ? null : summary.daysAggregated.toLocaleString()
-                }
-                asOf={fetchedAt}
-              />
-            </div>
-          </PanelState>
-        </PanelBody>
-      </Panel>
+          />
+        }
+        onRetry={() => void overview.refetch()}
+      >
+        <section aria-labelledby="day-shape">
+          <h2 id="day-shape" className="sr-only">
+            Average power by hour
+          </h2>
+          <DayCurve hours={hours} />
 
-      <Panel>
-        <PanelHeader
-          title="Pipeline status"
-          source="Dataset status and job history"
-          asOf={fetchedAt}
-        />
-        <PanelBody>
-          <ol className="flex flex-col gap-2 md:flex-row md:items-stretch">
-            {PIPELINE_STAGES.map((stage, index) => {
-              const { status, label } = stageStatus(stage.id);
+          {shape !== null && (
+            <p className="mt-6 max-w-[62ch] text-base leading-relaxed text-text-muted">
+              Quietest at{' '}
+              <span data-numeric className="text-text">
+                {hhmm(shape.trough.hour)}
+              </span>
+              , highest at{' '}
+              <span data-numeric className="text-text">
+                {hhmm(shape.peak.hour)}
+              </span>
+              .{' '}
+              {shape.busiest !== null && (
+                <>
+                  Its heaviest stretch is the {shape.busiest.label} run,{' '}
+                  <span data-numeric className="text-text">
+                    {hhmm(shape.busiest.from)}
+                  </span>{' '}
+                  to{' '}
+                  <span data-numeric className="text-text">
+                    {hhmm(shape.busiest.to)}
+                  </span>
+                  , which alone carries{' '}
+                  <span data-numeric className="text-text">
+                    {Math.round(shape.shareOf(shape.busiest) * 100)}%
+                  </span>{' '}
+                  of an average day&rsquo;s draw.
+                </>
+              )}
+            </p>
+          )}
+        </section>
+
+        {/* The reading of that curve. The total is the figure the page is about;
+            the rest support it, so they are set smaller rather than in matching
+            tiles. */}
+        <section className="grid items-baseline gap-x-8 gap-y-6 border-t border-border pt-6 sm:grid-cols-2 lg:grid-cols-4">
+          <Metric
+            size="figure"
+            label="recorded in total"
+            value={
+              summary?.totalConsumptionKwh == null
+                ? null
+                : formatValue(summary.totalConsumptionKwh, 'kWh', { withUnit: false })
+            }
+            unit="kWh"
+            asOf={fetchedAt}
+          />
+          <Metric
+            label="average draw"
+            value={
+              summary?.averagePowerKw == null
+                ? null
+                : formatValue(summary.averagePowerKw, 'kW', { withUnit: false })
+            }
+            unit="kW"
+          />
+          <Metric
+            label="highest minute"
+            value={
+              summary?.peakPowerKw == null
+                ? null
+                : formatValue(summary.peakPowerKw, 'kW', { withUnit: false })
+            }
+            unit="kW"
+          />
+          <Metric
+            label={summary?.daysAggregated === 1 ? 'day of readings' : 'days of readings'}
+            value={summary?.daysAggregated == null ? null : summary.daysAggregated.toLocaleString()}
+          />
+        </section>
+
+        {/* The pipeline as a line, because that is what it is: one thing after
+            another. Not five boxes. */}
+        <section aria-labelledby="pipeline" className="border-t border-border pt-6">
+          <h2 id="pipeline" className="text-sm text-text-muted">
+            How this dataset got here
+          </h2>
+
+          <ol className="mt-4 flex flex-col gap-0 sm:flex-row">
+            {STAGES.map((stage, index) => {
+              const { done, note } = stageState(stage.id);
               return (
-                <li key={stage.id} className="flex flex-1 items-center gap-2">
+                <li key={stage.id} className="flex flex-1 items-center gap-3">
                   <Link
                     to={stage.route}
-                    className="flex flex-1 flex-col gap-1.5 rounded border border-border bg-surface-sunken p-3 transition-colors duration-base hover:border-border-strong"
+                    className="group flex flex-1 items-baseline gap-2 py-2 sm:flex-col sm:items-start sm:gap-1"
                   >
-                    <span className="text-2xs uppercase tracking-wide text-text-subtle">
-                      Stage {index + 1}
+                    <span className="flex items-center gap-2">
+                      <span
+                        aria-hidden
+                        className={
+                          done
+                            ? 'size-1.5 rounded-full bg-accent'
+                            : 'size-1.5 rounded-full border border-border-strong'
+                        }
+                      />
+                      <span className="text-sm text-text group-hover:text-accent">
+                        {stage.name}
+                      </span>
                     </span>
-                    <span className="text-sm font-medium text-text">{stage.label}</span>
-                    <span className="text-2xs text-text-muted">{stage.detail}</span>
-                    <StatusPill status={status} className="mt-1 self-start">
-                      {label}
-                    </StatusPill>
+                    <span className="text-2xs text-text-subtle">{note}</span>
                   </Link>
-                  {index < PIPELINE_STAGES.length - 1 && (
-                    <ArrowRight
-                      aria-hidden
-                      className="hidden size-4 shrink-0 text-text-subtle md:block"
-                    />
+                  {index < STAGES.length - 1 && (
+                    <span aria-hidden className="hidden h-px flex-1 bg-border sm:block" />
                   )}
                 </li>
               );
             })}
           </ol>
-        </PanelBody>
-      </Panel>
+        </section>
+      </PanelState>
     </div>
   );
 }

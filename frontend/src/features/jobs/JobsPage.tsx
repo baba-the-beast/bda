@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import { Button } from '../../components/ui/Button';
 import { KeyValue } from '../../components/ui/KeyValue';
+import { PageHeader } from '../../components/ui/PageHeader';
 import { Panel, PanelBody, PanelHeader } from '../../components/ui/Panel';
 import { Select } from '../../components/ui/Select';
 import { EmptyState } from '../../components/ui/States';
@@ -11,7 +12,7 @@ import { StatusPill, type Status } from '../../components/ui/Status';
 import { Table, type Column } from '../../components/ui/Table';
 import { useToast } from '../../components/ui/Toast';
 import { jobs, type AnalyticsJob, type JobType } from '../../lib/api/endpoints';
-import { formatDatasetTime, formatDuration, formatValue } from '../../lib/format';
+import { formatDatasetTime, formatDuration, formatValue, humanizeEnum } from '../../lib/format';
 import { useDatasetSelection } from '../datasets/useDatasetSelection';
 import { DatasetPicker } from '../shared/DatasetPicker';
 import { PanelState } from '../shared/PanelState';
@@ -31,6 +32,11 @@ const STATUS_TONE: Record<string, Status> = {
   FAILED: 'critical',
   CANCELLED: 'warning',
 };
+
+/** The same wording the submit control uses, so a row names what was run. */
+const JOB_TYPE_LABEL: Record<string, string> = Object.fromEntries(
+  JOB_TYPES.map((type) => [type.value, type.label]),
+);
 
 /** A job that is still moving is worth re-reading; a finished one is not. */
 const IN_FLIGHT = new Set(['QUEUED', 'RUNNING', 'RETRYING']);
@@ -58,7 +64,11 @@ export function JobsPage() {
       return jobs.create(selectedId, jobType);
     },
     onSuccess: (job) => {
-      toast({ title: 'Job submitted', description: `${job.job_type} · ${job.id}`, status: 'ok' });
+      toast({
+        title: 'Job submitted',
+        description: `${job.job_type}, job ${job.id}`,
+        status: 'ok',
+      });
       void queryClient.invalidateQueries({ queryKey: ['jobs'] });
     },
     onError: (error: Error) => {
@@ -78,12 +88,19 @@ export function JobsPage() {
   });
 
   const columns: Column<AnalyticsJob>[] = [
-    { id: 'type', header: 'Type', cell: (row) => row.job_type, sortValue: (row) => row.job_type },
+    {
+      id: 'type',
+      header: 'Job',
+      cell: (row) => JOB_TYPE_LABEL[row.job_type] ?? humanizeEnum(row.job_type),
+      sortValue: (row) => row.job_type,
+    },
     {
       id: 'status',
       header: 'Status',
       cell: (row) => (
-        <StatusPill status={STATUS_TONE[row.status] ?? 'neutral'}>{row.status}</StatusPill>
+        <StatusPill status={STATUS_TONE[row.status] ?? 'neutral'}>
+          {humanizeEnum(row.status)}
+        </StatusPill>
       ),
       sortValue: (row) => row.status,
     },
@@ -91,7 +108,7 @@ export function JobsPage() {
       id: 'duration',
       header: 'Duration',
       cell: (row) =>
-        row.duration_seconds == null ? 'Not available' : formatDuration(row.duration_seconds),
+        row.duration_seconds == null ? 'not recorded' : formatDuration(row.duration_seconds),
       sortValue: (row) => row.duration_seconds ?? null,
       align: 'right',
       numeric: true,
@@ -99,7 +116,28 @@ export function JobsPage() {
     {
       id: 'progress',
       header: 'Progress',
-      cell: (row) => formatValue(row.progress_percent, '%'),
+      // A succeeded job's 100% is noise in a column you scan to find the one
+      // thing still moving, so only a job in flight draws a bar.
+      cell: (row) =>
+        IN_FLIGHT.has(row.status) ? (
+          <span className="flex items-center justify-end gap-2">
+            <span aria-hidden className="h-1 w-16 overflow-hidden rounded-full bg-border">
+              <span
+                className="block h-full rounded-full bg-accent transition-[width] duration-slow ease-out"
+                style={{ width: `${String(Math.max(0, Math.min(100, row.progress_percent)))}%` }}
+              />
+            </span>
+            <span data-numeric className="tabular-nums">
+              {formatValue(row.progress_percent, '%')}
+            </span>
+          </span>
+        ) : row.progress_percent >= 100 ? null : (
+          // A job that stopped short says where it stopped; that is the useful
+          // part of this column once nothing is moving.
+          <span data-numeric className="tabular-nums text-text-subtle">
+            stopped at {formatValue(row.progress_percent, '%')}
+          </span>
+        ),
       sortValue: (row) => row.progress_percent,
       align: 'right',
       numeric: true,
@@ -145,15 +183,16 @@ export function JobsPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold text-text">MapReduce jobs</h1>
-        <DatasetPicker selection={selection} />
-      </div>
+      <PageHeader
+        title="MapReduce jobs"
+        lede="Run an aggregate over a cleaned dataset, and watch it through to a result."
+        actions={<DatasetPicker selection={selection} />}
+      />
 
       <Panel>
         <PanelHeader
           title="Submit a job"
-          source="Job orchestrator"
+          source="the job orchestrator"
           actions={
             <div className="flex items-center gap-2">
               <Select
@@ -191,7 +230,7 @@ export function JobsPage() {
       <Panel>
         <PanelHeader
           title="Job history"
-          source="Job orchestrator"
+          source="the job orchestrator"
           asOf={fetchedAt}
           stale={jobList.isStale && !jobList.isFetching}
         />
@@ -221,7 +260,7 @@ export function JobsPage() {
 
       {failed !== undefined && (
         <Panel>
-          <PanelHeader title="Most recent failure" source={`Job ${failed.id}`} />
+          <PanelHeader title="Most recent failure" source={`job ${failed.id}`} />
           <PanelBody>
             <KeyValue
               items={[

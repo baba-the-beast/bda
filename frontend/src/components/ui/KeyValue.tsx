@@ -23,7 +23,7 @@ export function KeyValue({ items, className }: KeyValueProps) {
     <dl className={cn('grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-4 gap-y-2', className)}>
       {items.map((item) => (
         <div key={item.label} className="contents">
-          <dt className="text-2xs uppercase tracking-wide text-text-muted">{item.label}</dt>
+          <dt className="text-xs text-text-muted">{item.label}</dt>
           <dd
             className={cn(
               'min-w-0 break-words text-xs text-text',

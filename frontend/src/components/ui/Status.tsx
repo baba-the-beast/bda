@@ -50,7 +50,7 @@ export function Badge({ children, className }: BadgeProps) {
     <span
       className={cn(
         'inline-flex items-center rounded-sm border border-border bg-surface-raised',
-        'px-1.5 py-0.5 text-2xs font-medium uppercase tracking-wide text-text-muted',
+        'px-1.5 py-0.5 text-2xs font-medium text-text-muted',
         className,
       )}
     >
@@ -79,7 +79,7 @@ export function StatusPill({ status, children, showIcon = true, className }: Sta
     <span
       className={cn(
         'inline-flex items-center gap-1 rounded-sm border px-1.5 py-0.5',
-        'text-2xs font-medium uppercase tracking-wide',
+        'text-2xs font-medium',
         statusClass,
         className,
       )}

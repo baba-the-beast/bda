@@ -54,7 +54,7 @@ export function Navbar({ user, onLogout }: NavbarProps) {
           <div className="flex items-center gap-3 border-l border-border pl-4">
             <div className="hidden flex-col text-right sm:flex">
               <span className="text-xs font-medium text-text">{user.full_name}</span>
-              <span className="text-2xs uppercase tracking-wide text-text-subtle">{user.role}</span>
+              <span className="text-2xs text-text-subtle">{user.role.toLowerCase()}</span>
             </div>
             <Button
               size="sm"

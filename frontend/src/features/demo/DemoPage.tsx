@@ -2,11 +2,12 @@ import { CheckCircle2, Circle, Play } from 'lucide-react';
 import { useState } from 'react';
 
 import { Button } from '../../components/ui/Button';
+import { PageHeader } from '../../components/ui/PageHeader';
 import { Panel, PanelBody, PanelHeader } from '../../components/ui/Panel';
 import { StatusPill, type Status } from '../../components/ui/Status';
 import { analytics, datasets, hive, jobs, stream } from '../../lib/api/endpoints';
 import { ApiError } from '../../lib/api/errors';
-import { formatDuration } from '../../lib/format';
+import { formatDuration, humanizeEnum } from '../../lib/format';
 import { useDatasetSelection } from '../datasets/useDatasetSelection';
 import { DatasetPicker } from '../shared/DatasetPicker';
 
@@ -41,8 +42,8 @@ const STEPS: DemoStep[] = [
     run: async (datasetId) => {
       const dataset = await datasets.get(datasetId);
       return {
-        summary: `${dataset.filename} · ${dataset.status}`,
-        detail: `Checksum ${dataset.checksum_sha256.slice(0, 16)}… · raw path ${
+        summary: `${dataset.filename}, ${dataset.status.toLowerCase()}`,
+        detail: `Checksum ${dataset.checksum_sha256.slice(0, 16)}…, raw path ${
           dataset.raw_hdfs_path ?? 'not recorded'
         }`,
       };
@@ -60,7 +61,7 @@ const STEPS: DemoStep[] = [
           : `${((report.valid_rows / report.total_input_rows) * 100).toFixed(1)}%`;
       return {
         summary: `${report.valid_rows.toLocaleString()} of ${report.total_input_rows.toLocaleString()} rows valid (${share})`,
-        detail: `${report.rejected_rows.toLocaleString()} rejected · schema ${report.schema_version}`,
+        detail: `${report.rejected_rows.toLocaleString()} rejected, schema ${report.schema_version}`,
       };
     },
   },
@@ -190,15 +191,16 @@ export function DemoPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold text-text">Guided demo</h1>
-        <DatasetPicker selection={selection} />
-      </div>
+      <PageHeader
+        title="Guided demo"
+        lede="Walks one dataset through the whole pipeline, calling the live services as it goes."
+        actions={<DatasetPicker selection={selection} />}
+      />
 
       <Panel>
         <PanelHeader
           title="Pipeline walkthrough"
-          source="Live platform — no scripted output"
+          source="the live platform, with no scripted output"
           actions={
             <div className="flex items-center gap-2">
               {passed > 0 && (
@@ -245,7 +247,9 @@ export function DemoPage() {
                       <span className="text-sm font-medium text-text">
                         {index + 1}. {step.title}
                       </span>
-                      <StatusPill status={STATE_TONE[result.state]}>{result.state}</StatusPill>
+                      <StatusPill status={STATE_TONE[result.state]}>
+                        {humanizeEnum(result.state)}
+                      </StatusPill>
                       {result.durationMs !== undefined && (
                         <span data-numeric className="text-2xs text-text-subtle">
                           {Math.round(result.durationMs)} ms

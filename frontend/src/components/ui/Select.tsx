@@ -44,7 +44,7 @@ export function Select({
       <RadixSelect.Trigger
         {...aria}
         className={cn(
-          'inline-flex h-9 w-full items-center justify-between gap-2 rounded px-2',
+          'inline-flex h-9 w-full items-center justify-between gap-2 overflow-hidden rounded px-2',
           'border border-border bg-surface-sunken text-sm text-text',
           'transition-colors duration-base hover:border-border-strong',
           'data-[placeholder]:text-text-subtle',
@@ -52,7 +52,11 @@ export function Select({
           className,
         )}
       >
-        <RadixSelect.Value placeholder={placeholder} />
+        {/* The trigger is a fixed height, so a long option has to elide rather
+            than wrap out of it. */}
+        <span className="min-w-0 flex-1 truncate text-left">
+          <RadixSelect.Value placeholder={placeholder} />
+        </span>
         <RadixSelect.Icon>
           <ChevronDown aria-hidden className="size-3.5 text-text-subtle" />
         </RadixSelect.Icon>

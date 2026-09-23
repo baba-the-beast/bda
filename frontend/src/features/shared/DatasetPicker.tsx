@@ -1,5 +1,4 @@
 import { Select } from '../../components/ui/Select';
-import { formatBytes } from '../../lib/format';
 import type { DatasetSelection } from '../datasets/useDatasetSelection';
 
 /**
@@ -11,20 +10,20 @@ export function DatasetPicker({ selection }: { selection: DatasetSelection }) {
 
   return (
     <div className="flex items-center gap-2">
-      <label htmlFor="dataset-picker" className="text-2xs uppercase tracking-wide text-text-muted">
+      <label htmlFor="dataset-picker" className="text-xs text-text-muted">
         Dataset
       </label>
       <Select
         id="dataset-picker"
         aria-label="Dataset"
-        className="w-72"
+        className="w-64"
         value={selectedId}
         disabled={isLoading || list.length === 0}
         placeholder={isLoading ? 'Loading…' : 'No datasets'}
         onValueChange={setSelectedId}
         options={list.map((dataset) => ({
           value: dataset.id,
-          label: `${dataset.filename} · ${formatBytes(dataset.size_bytes)}`,
+          label: dataset.filename,
         }))}
       />
     </div>

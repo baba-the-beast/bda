@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 
+import { PageHeader } from '../../components/ui/PageHeader';
 import { Panel, PanelBody } from '../../components/ui/Panel';
 import { EmptyState } from '../../components/ui/States';
 import { StatusPill, type Status } from '../../components/ui/Status';
@@ -7,7 +8,7 @@ import { Table, type Column } from '../../components/ui/Table';
 import { Tabs } from '../../components/ui/Tabs';
 import { apiRequest } from '../../lib/api/client';
 import { auth, type User } from '../../lib/api/endpoints';
-import { formatDatasetTime } from '../../lib/format';
+import { formatDatasetTime, humanizeEnum } from '../../lib/format';
 import { PanelState } from '../shared/PanelState';
 
 interface AuditEntry {
@@ -79,7 +80,7 @@ const USER_COLUMNS: Column<User>[] = [
   {
     id: 'role',
     header: 'Role',
-    cell: (row) => <StatusPill status="info">{row.role}</StatusPill>,
+    cell: (row) => <StatusPill status="info">{humanizeEnum(row.role)}</StatusPill>,
     sortValue: (row) => row.role,
   },
   {
@@ -123,7 +124,9 @@ const SECURITY_COLUMNS: Column<SecurityEvent>[] = [
     id: 'severity',
     header: 'Severity',
     cell: (row) => (
-      <StatusPill status={SEVERITY_TONE[row.severity] ?? 'neutral'}>{row.severity}</StatusPill>
+      <StatusPill status={SEVERITY_TONE[row.severity] ?? 'neutral'}>
+        {humanizeEnum(row.severity)}
+      </StatusPill>
     ),
     sortValue: (row) => row.severity,
   },
@@ -165,7 +168,10 @@ export function AdminPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-xl font-semibold text-text">Administration</h1>
+      <PageHeader
+        title="Administration"
+        lede="Who can sign in, what they are allowed to do, and a record of what they did."
+      />
 
       <Panel>
         <Tabs
