@@ -10,14 +10,7 @@ import {
 } from '../../lib/format';
 
 import { ChartFrame } from './ChartFrame';
-import {
-  axisCommon,
-  gridCommon,
-  readChrome,
-  SERIES_PALETTE,
-  tooltipCommon,
-  valueAxisCommon,
-} from './theme';
+import { axisCommon, gridCommon, tooltipCommon, useChartChrome, valueAxisCommon } from './theme';
 import { useECharts, type EChartsOption } from './useECharts';
 
 export interface TimeSeriesPoint {
@@ -36,7 +29,10 @@ export interface TimeSeriesChartProps {
   description: string;
   unit: Unit;
   series: readonly TimeSeries[];
-  height?: number;
+  /** Pixels, or 'fill' to take the height of a compact frame's container. */
+  height?: number | 'fill';
+  /** See ChartFrame `compact`. */
+  compact?: boolean;
   /** Adds a brush for long ranges. Off for short, glanceable series. */
   zoomable?: boolean;
   refreshing?: boolean;
@@ -57,11 +53,12 @@ export function TimeSeriesChart({
   unit,
   series,
   height = 240,
+  compact = false,
   zoomable = false,
   refreshing = false,
   threshold,
 }: TimeSeriesChartProps) {
-  const chrome = readChrome();
+  const chrome = useChartChrome();
 
   const option = useMemo<EChartsOption>(() => {
     const toMs = (t: number | string) => (typeof t === 'number' ? t : new Date(t).getTime());
@@ -78,7 +75,7 @@ export function TimeSeriesChart({
 
     return {
       animation: false,
-      color: [...SERIES_PALETTE],
+      color: [...chrome.palette],
       // With a slider, the grid must leave room for it or the axis labels
       // render underneath the brush (dataviz anti-pattern: an axis band the
       // container excludes).
@@ -147,12 +144,12 @@ export function TimeSeriesChart({
                   areaStyle: { color: 'transparent' },
                 },
                 selectedDataBackground: {
-                  lineStyle: { color: SERIES_PALETTE[0], width: 1, opacity: 0.7 },
+                  lineStyle: { color: chrome.palette[0], width: 1, opacity: 0.7 },
                   areaStyle: { color: 'transparent' },
                 },
                 handleStyle: { color: chrome.surfaceRaised, borderColor: chrome.borderStrong },
                 moveHandleStyle: { color: chrome.border },
-                emphasis: { handleStyle: { borderColor: SERIES_PALETTE[0] } },
+                emphasis: { handleStyle: { borderColor: chrome.palette[0] } },
                 textStyle: { color: chrome.textSubtle, fontSize: 10 },
                 brushSelect: false,
               },
@@ -228,8 +225,14 @@ export function TimeSeriesChart({
       ]}
       tableRows={tableRows}
       refreshing={refreshing}
+      compact={compact}
     >
-      <div ref={containerRef} style={{ height }} role="img" aria-label={description} />
+      <div
+        ref={containerRef}
+        style={{ height: height === 'fill' ? '100%' : height }}
+        role="img"
+        aria-label={description}
+      />
     </ChartFrame>
   );
 }

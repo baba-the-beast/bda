@@ -18,29 +18,37 @@ async function blockingViolations(page: Page) {
   return results.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical');
 }
 
-test.describe('every route passes axe', () => {
-  for (const route of ROUTES) {
-    test(`${route.path} has no serious or critical violations`, async ({ page }) => {
-      await signIn(page);
-      await page.goto(route.path);
-      await expect(page.getByRole('heading', { name: route.heading, level: 1 })).toBeVisible();
+// Both themes ship, so both are audited: contrast that passes on the dark
+// palette says nothing about the light one.
+for (const scheme of ['dark', 'light'] as const) {
+  test.describe(`every route passes axe (${scheme})`, () => {
+    test.beforeEach(async ({ page }) => {
+      await page.emulateMedia({ colorScheme: scheme });
+    });
+
+    for (const route of ROUTES) {
+      test(`${route.path} has no serious or critical violations`, async ({ page }) => {
+        await signIn(page);
+        await page.goto(route.path);
+        await expect(page.getByRole('heading', { name: route.heading, level: 1 })).toBeVisible();
+
+        const blocking = await blockingViolations(page);
+        expect(
+          blocking,
+          blocking.map((v) => `${v.id} (${String(v.impact)}): ${v.help}`).join('\n'),
+        ).toEqual([]);
+      });
+    }
+
+    test('sign-in has no serious or critical violations', async ({ page }) => {
+      await stubApi(page);
+      await page.goto('/sign-in');
 
       const blocking = await blockingViolations(page);
-      expect(
-        blocking,
-        blocking.map((v) => `${v.id} (${String(v.impact)}): ${v.help}`).join('\n'),
-      ).toEqual([]);
+      expect(blocking, blocking.map((v) => `${v.id}: ${v.help}`).join('\n')).toEqual([]);
     });
-  }
-
-  test('sign-in has no serious or critical violations', async ({ page }) => {
-    await stubApi(page);
-    await page.goto('/sign-in');
-
-    const blocking = await blockingViolations(page);
-    expect(blocking, blocking.map((v) => `${v.id}: ${v.help}`).join('\n')).toEqual([]);
   });
-});
+}
 
 test.describe('keyboard operation', () => {
   test('every section is reachable from the keyboard alone', async ({ page }) => {
@@ -110,12 +118,10 @@ test.describe('data honesty', () => {
   test('every panel names its source and when it was read', async ({ page }) => {
     await signIn(page);
 
-    // The overview names the file its averages were taken over, and stamps the
-    // headline figure with the time it was read.
+    // The overview names the file its figures come from, and stamps each card
+    // with the time it was read.
     await page.goto('/overview');
-    await expect(
-      page.getByText(new RegExp(`Averaged across every day recorded in ${DATASET.filename}`)),
-    ).toBeVisible();
+    await expect(page.getByText(new RegExp(`What ${DATASET.filename} says`))).toBeVisible();
     await expect(page.getByText(/read at/i).first()).toBeVisible();
 
     // Panelled routes carry the same provenance in the panel header.

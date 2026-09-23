@@ -6,6 +6,7 @@ import { RouterProvider } from 'react-router-dom';
 import { AuthProvider } from './app/AuthProvider';
 import { ErrorBoundary } from './app/ErrorBoundary';
 import { router } from './app/router';
+import { ThemeProvider } from './app/ThemeProvider';
 import { ToastProvider } from './components/ui/Toast';
 import { ApiError } from './lib/api/errors';
 import './index.css';
@@ -37,13 +38,15 @@ if (!rootElement) {
 ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
     <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <ToastProvider>
-          <AuthProvider>
-            <RouterProvider router={router} />
-          </AuthProvider>
-        </ToastProvider>
-      </QueryClientProvider>
+      <ThemeProvider>
+        <QueryClientProvider client={queryClient}>
+          <ToastProvider>
+            <AuthProvider>
+              <RouterProvider router={router} />
+            </AuthProvider>
+          </ToastProvider>
+        </QueryClientProvider>
+      </ThemeProvider>
     </ErrorBoundary>
   </React.StrictMode>,
 );

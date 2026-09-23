@@ -22,7 +22,7 @@ export function Skeleton({ className, label = 'Loading' }: SkeletonProps) {
       <span className="sr-only">{label}</span>
       <span
         aria-hidden
-        className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/5 to-transparent"
+        className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-text/5 to-transparent"
       />
     </div>
   );

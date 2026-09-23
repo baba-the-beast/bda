@@ -114,6 +114,106 @@
 }
 
 /**
+ * Light theme: the same room with the lights on. Warm paper surfaces and ink
+ * text; the filament amber deepens to bronze so it still reads as text and as a
+ * fill under white type.
+ *
+ * Applied three ways, in order of precedence:
+ *   - `data-theme="light"` on <html>, when the reader chose it;
+ *   - the system preference, when they have not chosen (`data-theme` absent or
+ *     "system"). This works before any script runs, so there is no flash;
+ *   - otherwise the dark values above stand.
+ *
+ * Only colour and shadow tokens change. Every text and status colour clears
+ * 4.5:1 against all four surfaces and, for status colours, their own tinted
+ * background — checked by computation, and by axe in the e2e suite in both
+ * themes.
+ */
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  --color-canvas: 247 244 240; /* #f7f4f0 */
+  --color-surface: 255 253 250; /* #fffdfa */
+  --color-surface-raised: 239 235 230; /* #efebe6 */
+  --color-surface-sunken: 240 236 231; /* #f0ece7 */
+  --color-overlay: 30 26 34; /* #1e1a22 backdrop, always used translucent */
+
+  --color-text: 28 24 32; /* #1c1820  14.9:1 */
+  --color-text-muted: 88 80 92; /* #58505c   6.5:1 */
+  --color-text-subtle: 110 101 114; /* #6e6572   4.8:1 */
+
+  --color-border: 224 218 211; /* #e0dad3 */
+  --color-border-strong: 196 188 180; /* #c4bcb4 */
+
+  --color-accent: 146 84 0; /* #925400  5.3:1 on the raised surface */
+  --color-accent-hover: 120 68 0; /* #784400 */
+  --color-accent-contrast: 255 253 250; /* #fffdfa text on a bronze fill, 6.1:1 */
+
+  --color-idle: 74 96 128; /* #4a6080 */
+  --color-active: 146 86 8; /* #925608 */
+  --color-peak: 172 60 26; /* #ac3c1a */
+
+  --color-ok: 22 112 68; /* #167044  5.3:1 on its own tint */
+  --color-warning: 128 84 0; /* #805400  5.7:1 on its own tint */
+  --color-critical: 190 50 46; /* #be322e  5.6:1 */
+  --color-info: 50 90 170; /* #325aaa  6.5:1 */
+  --color-neutral: 105 98 108; /* #69626c */
+
+  --color-ok-bg: 226 243 233;
+  --color-warning-bg: 250 238 214;
+  --color-critical-bg: 250 226 224;
+  --color-info-bg: 226 233 248;
+  --color-neutral-bg: 236 232 236;
+
+  --shadow-sm: 0 1px 2px rgb(40 30 20 / 0.08);
+  --shadow-md: 0 6px 16px rgb(40 30 20 / 0.1);
+  --shadow-lg: 0 20px 48px rgb(40 30 20 / 0.16);
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme='dark']) {
+    color-scheme: light;
+
+    --color-canvas: 247 244 240;
+    --color-surface: 255 253 250;
+    --color-surface-raised: 239 235 230;
+    --color-surface-sunken: 240 236 231;
+    --color-overlay: 30 26 34;
+
+    --color-text: 28 24 32;
+    --color-text-muted: 88 80 92;
+    --color-text-subtle: 110 101 114;
+
+    --color-border: 224 218 211;
+    --color-border-strong: 196 188 180;
+
+    --color-accent: 146 84 0;
+    --color-accent-hover: 120 68 0;
+    --color-accent-contrast: 255 253 250;
+
+    --color-idle: 74 96 128;
+    --color-active: 146 86 8;
+    --color-peak: 172 60 26;
+
+    --color-ok: 22 112 68;
+    --color-warning: 128 84 0;
+    --color-critical: 190 50 46;
+    --color-info: 50 90 170;
+    --color-neutral: 105 98 108;
+
+    --color-ok-bg: 226 243 233;
+    --color-warning-bg: 250 238 214;
+    --color-critical-bg: 250 226 224;
+    --color-info-bg: 226 233 248;
+    --color-neutral-bg: 236 232 236;
+
+    --shadow-sm: 0 1px 2px rgb(40 30 20 / 0.08);
+    --shadow-md: 0 6px 16px rgb(40 30 20 / 0.1);
+    --shadow-lg: 0 20px 48px rgb(40 30 20 / 0.16);
+  }
+}
+
+/**
  * Anyone who has asked their system to reduce motion gets none of it, without
  * each component having to remember. This includes the one orchestrated moment
  * on the overview route: the curve simply appears drawn.

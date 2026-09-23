@@ -22,7 +22,9 @@ export function PageHeader({ title, lede, actions, className }: PageHeaderProps)
         <h1 className="text-xl font-semibold tracking-tight text-text">{title}</h1>
         <p className="mt-1 max-w-[58ch] text-sm text-text-muted">{lede}</p>
       </div>
-      {actions !== undefined && <div className="flex items-center gap-2">{actions}</div>}
+      {actions !== undefined && (
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">{actions}</div>
+      )}
     </header>
   );
 }

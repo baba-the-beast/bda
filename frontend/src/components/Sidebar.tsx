@@ -95,13 +95,17 @@ export interface SidebarProps {
   currentPage: PageId;
   onSelectPage: (page: PageId) => void;
   userRole?: string | undefined;
+  className?: string;
 }
 
-export function Sidebar({ currentPage, onSelectPage, userRole }: SidebarProps) {
+export function Sidebar({ currentPage, onSelectPage, userRole, className }: SidebarProps) {
   return (
     <nav
       aria-label="Sections"
-      className="flex w-56 shrink-0 flex-col gap-4 overflow-y-auto border-r border-border bg-surface py-3"
+      className={cn(
+        'flex w-56 shrink-0 flex-col gap-4 overflow-y-auto border-r border-border bg-surface py-3',
+        className,
+      )}
     >
       {SECTIONS.map((section) => {
         const items = section.items.filter(
@@ -128,7 +132,7 @@ export function Sidebar({ currentPage, onSelectPage, userRole }: SidebarProps) {
                     onSelectPage(id);
                   }}
                   className={cn(
-                    'flex items-center gap-2 px-3 py-1.5 text-left text-xs',
+                    'flex items-center gap-2 px-3 py-2.5 text-left text-sm md:py-1.5 md:text-xs',
                     'transition-colors duration-base',
                     // A left bar marks the active item, visible without colour.
                     'border-l-2',

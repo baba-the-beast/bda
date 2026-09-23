@@ -10,6 +10,8 @@ export interface PanelStateProps {
   isEmpty?: boolean;
   empty?: ReactNode;
   onRetry?: () => void;
+  /** Tighter loading and error states, for a fixed-size dashboard card. */
+  compact?: boolean;
   children: ReactNode;
 }
 
@@ -24,10 +26,11 @@ export function PanelState({
   isEmpty = false,
   empty,
   onRetry,
+  compact = false,
   children,
 }: PanelStateProps) {
   if (isLoading) {
-    return <SkeletonText lines={4} />;
+    return <SkeletonText lines={compact ? 3 : 4} />;
   }
 
   if (error !== null && error !== undefined) {
@@ -38,6 +41,7 @@ export function PanelState({
         }
         correlationId={error instanceof ApiError ? error.correlationId : null}
         {...(onRetry === undefined ? {} : { onRetry })}
+        {...(compact ? { className: 'gap-1 px-2 py-2' } : {})}
       />
     );
   }

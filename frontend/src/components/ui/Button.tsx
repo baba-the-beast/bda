@@ -14,8 +14,13 @@ const VARIANTS: Record<ButtonVariant, string> = {
   danger: 'bg-critical-bg text-critical border border-critical/40 hover:border-critical',
 };
 
+/**
+ * Heights are written out rather than taken from the spacing scale: the design
+ * tokens redefine steps 5–8 (`7` is 3rem there), so `h-7` rendered a "small"
+ * button 48px tall — taller than a medium one.
+ */
 const SIZES: Record<ButtonSize, string> = {
-  sm: 'h-7 px-2 text-xs gap-1',
+  sm: 'h-[1.75rem] px-2 text-xs gap-1',
   md: 'h-9 px-3 text-sm gap-2',
 };
 

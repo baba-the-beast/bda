@@ -12,6 +12,11 @@ export interface DialogProps {
   description?: string;
   children: ReactNode;
   footer?: ReactNode;
+  /**
+   * `center` is the modal; `left` is a full-height drawer from the leading
+   * edge, used for navigation on narrow screens.
+   */
+  side?: 'center' | 'left';
   className?: string;
 }
 
@@ -26,6 +31,7 @@ export function Dialog({
   description,
   children,
   footer,
+  side = 'center',
   className,
 }: DialogProps) {
   return (
@@ -34,9 +40,16 @@ export function Dialog({
         <RadixDialog.Overlay className="fixed inset-0 z-overlay bg-overlay/80 animate-fade-in" />
         <RadixDialog.Content
           className={cn(
-            'fixed left-1/2 top-1/2 z-dialog w-[min(32rem,calc(100vw-2rem))]',
-            '-translate-x-1/2 -translate-y-1/2 animate-slide-up',
-            'rounded border border-border bg-surface shadow-lg',
+            side === 'center'
+              ? [
+                  'fixed left-1/2 top-1/2 z-dialog w-[min(32rem,calc(100vw-2rem))]',
+                  '-translate-x-1/2 -translate-y-1/2 animate-slide-up',
+                  'rounded border border-border bg-surface shadow-lg',
+                ]
+              : [
+                  'fixed inset-y-0 left-0 z-dialog flex w-72 max-w-[85vw] flex-col',
+                  'animate-fade-in border-r border-border bg-surface shadow-lg',
+                ],
             className,
           )}
         >
@@ -59,7 +72,14 @@ export function Dialog({
             </RadixDialog.Close>
           </div>
 
-          <div className="px-4 py-4 text-sm text-text">{children}</div>
+          <div
+            className={cn(
+              'text-sm text-text',
+              side === 'center' ? 'px-4 py-4' : 'min-h-0 flex-1 overflow-y-auto',
+            )}
+          >
+            {children}
+          </div>
 
           {footer !== undefined && (
             <div className="flex justify-end gap-2 border-t border-border px-4 py-3">{footer}</div>

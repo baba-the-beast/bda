@@ -75,7 +75,7 @@ export function PanelHeader({
           </p>
         )}
       </div>
-      {actions !== undefined && <div className="flex items-center gap-2">{actions}</div>}
+      {actions !== undefined && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </header>
   );
 }

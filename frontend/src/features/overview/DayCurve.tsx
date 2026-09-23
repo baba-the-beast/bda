@@ -157,9 +157,12 @@ export function buildDayShape(hours: readonly HourPoint[]) {
 
 export function DayCurve({
   hours,
+  height = 300,
   className,
 }: {
   hours: readonly HourPoint[];
+  /** Plot height in pixels; the hour axis and peak label sit outside it. */
+  height?: number;
   className?: string;
 }) {
   const gradientId = useId();
@@ -196,7 +199,10 @@ export function DayCurve({
       {/* The scale sits in its own column so the trace itself starts at the
           left edge of the page and runs the full width. */}
       <div className="flex gap-3">
-        <div className="relative h-[300px] w-16 shrink-0 self-start text-right text-2xs text-text-subtle">
+        <div
+          className="relative w-16 shrink-0 self-start text-right text-2xs text-text-subtle"
+          style={{ height }}
+        >
           {[max, mean, min].map((value, index) => (
             <span
               key={value}
@@ -215,7 +221,8 @@ export function DayCurve({
           <svg
             viewBox={`0 0 ${String(W)} ${String(H)}`}
             preserveAspectRatio="none"
-            className="h-[300px] w-full"
+            className="w-full"
+            style={{ height }}
             role="img"
             aria-label={`Average power by hour. Peak ${formatValue(peak.averagePowerKw, 'kW')} at ${String(peak.hour)}:00, average ${formatValue(mean, 'kW')}.`}
           >

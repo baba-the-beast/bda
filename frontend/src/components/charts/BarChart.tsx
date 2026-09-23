@@ -3,14 +3,7 @@ import { useMemo } from 'react';
 import { formatCompact, formatValue, type Unit } from '../../lib/format';
 
 import { ChartFrame } from './ChartFrame';
-import {
-  axisCommon,
-  gridCommon,
-  readChrome,
-  SERIES_PALETTE,
-  tooltipCommon,
-  valueAxisCommon,
-} from './theme';
+import { axisCommon, gridCommon, tooltipCommon, useChartChrome, valueAxisCommon } from './theme';
 import { useECharts, type EChartsOption } from './useECharts';
 
 export interface CategoryDatum {
@@ -24,7 +17,10 @@ export interface BarChartProps {
   unit: Unit;
   categoryLabel: string;
   data: readonly CategoryDatum[];
-  height?: number;
+  /** Pixels, or 'fill' to take the height of a compact frame's container. */
+  height?: number | 'fill';
+  /** See ChartFrame `compact`. */
+  compact?: boolean;
   refreshing?: boolean;
 }
 
@@ -43,9 +39,10 @@ export function BarChart({
   categoryLabel,
   data,
   height = 240,
+  compact = false,
   refreshing = false,
 }: BarChartProps) {
-  const chrome = readChrome();
+  const chrome = useChartChrome();
 
   const option = useMemo<EChartsOption>(
     () => ({
@@ -79,10 +76,10 @@ export function BarChart({
           data: data.map((d) => d.value),
           // Thin marks, and a 4px rounded end anchored to the baseline.
           barMaxWidth: 18,
-          itemStyle: { color: SERIES_PALETTE[0], borderRadius: [4, 4, 0, 0] },
+          itemStyle: { color: chrome.palette[0], borderRadius: [4, 4, 0, 0] },
           // A 2px surface gap keeps neighbouring bars apart without a border.
           barCategoryGap: '30%',
-          emphasis: { itemStyle: { color: SERIES_PALETTE[0], opacity: 0.85 } },
+          emphasis: { itemStyle: { color: chrome.palette[0], opacity: 0.85 } },
         },
       ],
     }),
@@ -99,8 +96,14 @@ export function BarChart({
       tableColumns={[categoryLabel, `${title} (${unit})`]}
       tableRows={data.map((d) => [d.category, formatValue(d.value, unit)])}
       refreshing={refreshing}
+      compact={compact}
     >
-      <div ref={containerRef} style={{ height }} role="img" aria-label={description} />
+      <div
+        ref={containerRef}
+        style={{ height: height === 'fill' ? '100%' : height }}
+        role="img"
+        aria-label={description}
+      />
     </ChartFrame>
   );
 }

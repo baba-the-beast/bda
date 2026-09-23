@@ -120,7 +120,7 @@ const json = (body: unknown) => ({
 
 /** Every route that requires authentication, with its page heading. */
 export const ROUTES = [
-  { path: '/overview', heading: 'A day in this house' },
+  { path: '/overview', heading: 'Overview' },
   { path: '/datasets', heading: 'Datasets & quality' },
   { path: '/jobs', heading: 'MapReduce jobs' },
   { path: '/analysis', heading: 'Consumption analysis' },

@@ -14,7 +14,7 @@ test.describe('overview', () => {
   test('shows figures from the API with a read-at stamp', async ({ page }) => {
     await signIn(page);
 
-    await expect(page.getByRole('heading', { name: 'A day in this house' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Overview', level: 1 })).toBeVisible();
     await expect(page.getByText('25.85')).toBeVisible();
     await expect(page.getByText('3.967')).toBeVisible();
     await expect(page.getByText(/read at/i).first()).toBeVisible();

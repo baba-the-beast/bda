@@ -78,7 +78,7 @@ export function StatusPill({ status, children, showIcon = true, className }: Sta
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1 rounded-sm border px-1.5 py-0.5',
+        'inline-flex items-center gap-1 whitespace-nowrap rounded-sm border px-1.5 py-0.5',
         'text-2xs font-medium',
         statusClass,
         className,

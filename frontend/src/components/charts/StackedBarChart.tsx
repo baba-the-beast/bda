@@ -7,9 +7,8 @@ import {
   axisCommon,
   gridCommon,
   MAX_SERIES,
-  readChrome,
-  SERIES_PALETTE,
   tooltipCommon,
+  useChartChrome,
   valueAxisCommon,
 } from './theme';
 import { useECharts, type EChartsOption } from './useECharts';
@@ -49,7 +48,7 @@ export function StackedBarChart({
   height = 240,
   refreshing = false,
 }: StackedBarChartProps) {
-  const chrome = readChrome();
+  const chrome = useChartChrome();
 
   if (series.length > MAX_SERIES) {
     // Slots are never cycled: a ninth series would repeat a hue and break
@@ -62,12 +61,12 @@ export function StackedBarChart({
   const option = useMemo<EChartsOption>(
     () => ({
       animation: false,
-      color: [...SERIES_PALETTE],
+      color: [...chrome.palette],
       grid: gridCommon,
       tooltip: {
         trigger: 'axis',
         ...tooltipCommon(chrome),
-        axisPointer: { type: 'shadow', shadowStyle: { color: 'rgb(255 255 255 / 0.04)' } },
+        axisPointer: { type: 'shadow', shadowStyle: { color: chrome.pointerShadow } },
         formatter: (params: unknown) => {
           const rows = Array.isArray(params) ? params : [params];
           const first = rows[0] as { name?: string } | undefined;

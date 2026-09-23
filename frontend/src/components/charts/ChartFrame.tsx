@@ -5,7 +5,7 @@ import { cn } from '../../lib/cn';
 import { Button } from '../ui/Button';
 import { EmptyState } from '../ui/States';
 
-import { SERIES_PALETTE } from './theme';
+import { useChartChrome } from './theme';
 
 export interface ChartSeriesMeta {
   name: string;
@@ -25,6 +25,12 @@ export interface ChartFrameProps {
   tableRows: readonly (readonly string[])[];
   /** True while a refetch is in flight: the old render is held, dimmed. */
   refreshing?: boolean;
+  /**
+   * For a chart inside a fixed-size card whose header already names it: the
+   * title and description move to assistive technology only, the table toggle
+   * shrinks to an icon, and the plot fills whatever height is left.
+   */
+  compact?: boolean;
   children: ReactNode;
   className?: string;
 }
@@ -43,18 +49,27 @@ export function ChartFrame({
   tableColumns,
   tableRows,
   refreshing = false,
+  compact = false,
   children,
   className,
 }: ChartFrameProps) {
   const [view, setView] = useState<'chart' | 'table'>('chart');
   const descriptionId = useId();
+  const { palette } = useChartChrome();
 
   const isEmpty = tableRows.length === 0;
 
   return (
-    <figure className={cn('m-0 flex flex-col gap-2', className)}>
-      <figcaption className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-col gap-1">
+    <figure
+      className={cn('m-0 flex flex-col gap-2', compact && 'relative h-full min-h-0', className)}
+    >
+      <figcaption
+        className={cn(
+          'flex flex-wrap items-center justify-between gap-2',
+          compact && 'absolute right-2 top-2 z-base',
+        )}
+      >
+        <div className={cn('flex flex-col gap-1', compact && 'sr-only')}>
           <p className="text-xs font-medium text-text">{title}</p>
           <p id={descriptionId} className="text-2xs text-text-muted">
             {description}
@@ -65,6 +80,8 @@ export function ChartFrame({
           size="sm"
           variant="ghost"
           aria-pressed={view === 'table'}
+          aria-label={compact ? (view === 'chart' ? 'View as table' : 'View as chart') : undefined}
+          title={compact ? (view === 'chart' ? 'View as table' : 'View as chart') : undefined}
           onClick={() => {
             setView((current) => (current === 'chart' ? 'table' : 'chart'));
           }}
@@ -76,7 +93,7 @@ export function ChartFrame({
             )
           }
         >
-          {view === 'chart' ? 'View as table' : 'View as chart'}
+          {compact ? null : view === 'chart' ? 'View as table' : 'View as chart'}
         </Button>
       </figcaption>
 
@@ -89,7 +106,7 @@ export function ChartFrame({
               <span
                 aria-hidden
                 className="size-2 shrink-0 rounded-sm"
-                style={{ backgroundColor: SERIES_PALETTE[item.colorIndex % SERIES_PALETTE.length] }}
+                style={{ backgroundColor: palette[item.colorIndex % palette.length] }}
               />
               {item.name}
             </li>
@@ -106,13 +123,22 @@ export function ChartFrame({
         <div
           // Held at reduced opacity during a refetch rather than collapsing to a
           // skeleton, which would jump the layout on every poll.
-          className={cn('transition-opacity duration-base', refreshing && 'opacity-60')}
+          className={cn(
+            'transition-opacity duration-base',
+            refreshing && 'opacity-60',
+            compact && 'min-h-0 flex-1',
+          )}
           aria-describedby={descriptionId}
         >
           {children}
         </div>
       ) : (
-        <div className="max-h-80 overflow-auto rounded border border-border">
+        <div
+          className={cn(
+            'overflow-auto rounded border border-border',
+            compact ? 'min-h-0 flex-1' : 'max-h-80',
+          )}
+        >
           <table className="w-full border-collapse text-xs">
             <caption className="sr-only">{title}</caption>
             <thead className="sticky top-0 bg-surface-raised">

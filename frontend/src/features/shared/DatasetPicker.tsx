@@ -9,14 +9,14 @@ export function DatasetPicker({ selection }: { selection: DatasetSelection }) {
   const { datasets: list, selectedId, setSelectedId, isLoading } = selection;
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex min-w-0 flex-1 items-center gap-2 sm:flex-none">
       <label htmlFor="dataset-picker" className="text-xs text-text-muted">
         Dataset
       </label>
       <Select
         id="dataset-picker"
         aria-label="Dataset"
-        className="w-64"
+        className="w-full min-w-0 sm:w-64"
         value={selectedId}
         disabled={isLoading || list.length === 0}
         placeholder={isLoading ? 'Loading…' : 'No datasets'}
