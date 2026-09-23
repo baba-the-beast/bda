@@ -7,7 +7,8 @@ and execution across live HiveServer2 or local development SQL adapter.
 import os
 import re
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
+
 import duckdb
 
 from shared.logger import get_logger
@@ -19,7 +20,7 @@ FORBIDDEN_KEYWORDS = [
     "REVOKE", "UPDATE", "REPLACE", "EXEC", "EXECUTE", "UNION", ";", "--", "/*"
 ]
 
-APPROVED_TEMPLATES: Dict[str, Dict[str, Any]] = {
+APPROVED_TEMPLATES: dict[str, dict[str, Any]] = {
     "daily_aggregates": {
         "name": "Daily Power Aggregates",
         "description": "Calculates total daily energy consumption (kWh), power bounds, and submeter totals.",
@@ -185,8 +186,8 @@ def validate_query_safety(query_str: str) -> None:
 def execute_analytical_query(
     template_name: str,
     dataset_csv_path: str,
-    parameters: Optional[Dict[str, Any]] = None,
-) -> Tuple[List[Dict[str, Any]], float]:
+    parameters: dict[str, Any] | None = None,
+) -> tuple[list[dict[str, Any]], float]:
     if template_name not in APPROVED_TEMPLATES:
         raise ValueError(f"Unknown query template: '{template_name}'")
 

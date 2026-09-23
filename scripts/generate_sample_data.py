@@ -6,7 +6,7 @@ Used for deterministic testing, unit test suites, integration tests, and local b
 
 import os
 import random
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 DATA_DIR = os.getenv("DATA_DIR", os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data")))
 SAMPLE_FILE = os.path.join(DATA_DIR, "household_power_consumption_sample.txt")
@@ -15,7 +15,7 @@ SAMPLE_FILE = os.path.join(DATA_DIR, "household_power_consumption_sample.txt")
 def generate_household_power_sample(
     output_path: str = SAMPLE_FILE,
     num_days: int = 14,
-    start_date: datetime = datetime(2006, 12, 16, 17, 24, 0),
+    start_date: datetime = datetime(2006, 12, 16, 17, 24, 0, tzinfo=UTC),
     missing_rate: float = 0.012,  # ~1.2% missing '?' records, similar to real UCI dataset
     seed: int = 42,
 ) -> str:
@@ -30,7 +30,7 @@ def generate_household_power_sample(
 
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(header)
-        for i in range(total_minutes):
+        for _ in range(total_minutes):
             date_str = current_time.strftime("%d/%m/%Y")
             time_str = current_time.strftime("%H:%M:%S")
 

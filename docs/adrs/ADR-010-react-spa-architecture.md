@@ -1,7 +1,14 @@
 # ADR-010: Modern React Single-Page Application with Server-Sent Events
 
 ## Status
-Accepted
+
+**Superseded by [ADR-011](ADR-011-frontend-architecture.md).**
+
+The technology choices below (React 18, TypeScript, Vite, Tailwind, SSE over
+WebSockets) were sound and are retained. The nine-view information architecture
+it describes never matched what shipped, and the "Lucide-React icons" claim was
+only half true — a Material Symbols webfont was in use alongside it, from a CDN
+the gateway's own CSP would have blocked. ADR-011 records what replaced it.
 
 ## Context
 Analysts and evaluators need an interactive, modern user interface to explore multi-year batch aggregations, run Hive queries, observe data quality reports, and visualize real-time power streams. Heavy full-duplex WebSocket protocols add server connection state overhead for unidirectional telemetry broadcasts.

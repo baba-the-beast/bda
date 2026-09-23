@@ -3,17 +3,18 @@ Structured error response model and custom exception hierarchy for the Energy An
 Follows RFC 7807-inspired standardized JSON error schemas.
 """
 
-from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, Field
+from typing import Any
+
 from fastapi import HTTPException, status
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
 
 
 class ErrorDetail(BaseModel):
     code: str = Field(..., description="Machine-readable error code")
     message: str = Field(..., description="Human-readable error description")
-    request_id: Optional[str] = Field(None, description="Correlation identifier")
-    details: Optional[List[Dict[str, Any]]] = Field(default_factory=list, description="Additional context")
+    request_id: str | None = Field(None, description="Correlation identifier")
+    details: list[dict[str, Any]] | None = Field(default_factory=list, description="Additional context")
 
 
 class PlatformErrorResponse(BaseModel):
@@ -26,8 +27,8 @@ class PlatformException(HTTPException):
         status_code: int,
         code: str,
         message: str,
-        details: Optional[List[Dict[str, Any]]] = None,
-        request_id: Optional[str] = None,
+        details: list[dict[str, Any]] | None = None,
+        request_id: str | None = None,
     ):
         super().__init__(status_code=status_code, detail=message)
         self.code = code
@@ -50,7 +51,7 @@ class PlatformException(HTTPException):
 
 
 class ValidationException(PlatformException):
-    def __init__(self, message: str, details: Optional[List[Dict[str, Any]]] = None, request_id: Optional[str] = None):
+    def __init__(self, message: str, details: list[dict[str, Any]] | None = None, request_id: str | None = None):
         super().__init__(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             code="VALIDATION_ERROR",
@@ -61,7 +62,7 @@ class ValidationException(PlatformException):
 
 
 class AuthenticationException(PlatformException):
-    def __init__(self, message: str = "Invalid or expired credentials", request_id: Optional[str] = None):
+    def __init__(self, message: str = "Invalid or expired credentials", request_id: str | None = None):
         super().__init__(
             status_code=status.HTTP_401_UNAUTHORIZED,
             code="AUTHENTICATION_FAILED",
@@ -71,7 +72,7 @@ class AuthenticationException(PlatformException):
 
 
 class AuthorizationException(PlatformException):
-    def __init__(self, message: str = "Insufficient permissions", request_id: Optional[str] = None):
+    def __init__(self, message: str = "Insufficient permissions", request_id: str | None = None):
         super().__init__(
             status_code=status.HTTP_403_FORBIDDEN,
             code="PERMISSION_DENIED",
@@ -81,7 +82,7 @@ class AuthorizationException(PlatformException):
 
 
 class NotFoundException(PlatformException):
-    def __init__(self, resource: str, identifier: str, request_id: Optional[str] = None):
+    def __init__(self, resource: str, identifier: str, request_id: str | None = None):
         super().__init__(
             status_code=status.HTTP_404_NOT_FOUND,
             code="RESOURCE_NOT_FOUND",
@@ -91,7 +92,7 @@ class NotFoundException(PlatformException):
 
 
 class ConflictException(PlatformException):
-    def __init__(self, message: str, request_id: Optional[str] = None):
+    def __init__(self, message: str, request_id: str | None = None):
         super().__init__(
             status_code=status.HTTP_409_CONFLICT,
             code="RESOURCE_CONFLICT",
@@ -101,7 +102,7 @@ class ConflictException(PlatformException):
 
 
 class RateLimitException(PlatformException):
-    def __init__(self, retry_after: int = 60, request_id: Optional[str] = None):
+    def __init__(self, retry_after: int = 60, request_id: str | None = None):
         super().__init__(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             code="RATE_LIMIT_EXCEEDED",
@@ -112,7 +113,7 @@ class RateLimitException(PlatformException):
 
 
 class InfrastructureException(PlatformException):
-    def __init__(self, system_name: str, message: str, request_id: Optional[str] = None):
+    def __init__(self, system_name: str, message: str, request_id: str | None = None):
         super().__init__(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             code="INFRASTRUCTURE_UNAVAILABLE",
@@ -122,6 +123,6 @@ class InfrastructureException(PlatformException):
 
 
 class DatabaseConnectionException(InfrastructureException):
-    def __init__(self, message: str = "Unable to connect to MongoDB datastore. Fail-closed enforced.", request_id: Optional[str] = None):
+    def __init__(self, message: str = "Unable to connect to MongoDB datastore. Fail-closed enforced.", request_id: str | None = None):
         super().__init__(system_name="MongoDB", message=message, request_id=request_id)
 

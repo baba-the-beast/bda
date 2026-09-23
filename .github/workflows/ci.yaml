@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [ "main" ]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint-and-format:
     name: Code Quality & Linting
@@ -22,10 +26,13 @@ jobs:
       - name: Install Linting Tools
         run: |
           python -m pip install --upgrade pip
-          pip install ruff mypy
+          pip install -r requirements-dev.txt
 
       - name: Run Ruff Linter
         run: ruff check .
+
+      - name: Run mypy (shared library)
+        run: mypy
 
   unit-and-integration-tests:
     name: Test Suite & Security Validation
@@ -42,10 +49,7 @@ jobs:
       - name: Install Platform Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r services/api-gateway/requirements.txt
-          pip install -r services/auth-service/requirements.txt
-          pip install -r services/hive-query-service/requirements.txt
-          pip install pytest pytest-cov email-validator
+          pip install -r requirements-dev.txt
 
       - name: Run Test Suite with Coverage
         run: pytest tests/ --cov=. --cov-report=xml
@@ -54,7 +58,7 @@ jobs:
         run: python tests/correctness/verify_analytics.py
 
   frontend-build:
-    name: Frontend TypeScript & Vite Build
+    name: Frontend Quality, Tests & Build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -62,15 +66,56 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # 22, not 20: jsdom's undici calls webidl.util.markAsUncloneable,
+          # which Node 20 does not have, so every Vitest worker fails to start.
+          # Vite 6 and Vitest 5 also want 20.19+/22.12+.
+          node-version: 22
           cache: "npm"
-          cache-dependency-path: frontend/package.json
+          cache-dependency-path: frontend/package-lock.json
 
-      - name: Install & Build
-        run: |
-          cd frontend
-          npm ci
-          npm run build
+      - name: Install Dependencies
+        run: npm ci
+        working-directory: frontend
+
+      - name: Typecheck
+        run: npm run typecheck
+        working-directory: frontend
+
+      - name: Lint
+        run: npm run lint
+        working-directory: frontend
+
+      - name: Format Check
+        run: npm run format:check
+        working-directory: frontend
+
+      - name: Unit Tests
+        run: npm run test
+        working-directory: frontend
+
+      - name: Build
+        run: npm run build
+        working-directory: frontend
+
+      - name: Bundle Budget
+        run: npm run size
+        working-directory: frontend
+
+      - name: Install Playwright Browser
+        run: npx playwright install chromium --with-deps
+        working-directory: frontend
+
+      - name: End-to-End Smoke & Accessibility
+        run: npm run test:e2e
+        working-directory: frontend
+
+      - name: Upload Playwright Report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          retention-days: 7
 
   kubernetes-validation:
     name: Kubernetes & Helm Validation

@@ -3,11 +3,14 @@ Integration tests for repository persistence, MongoDB schemas, and CRUD operatio
 """
 
 import uuid
-from datetime import datetime, timezone
-import pytest
+
 from shared.models import (
-    DatasetMetadata, AnalyticsJobResponse, DailyAggregate,
-    StreamWindow, JobStatus, JobType, DatasetStatus
+    AnalyticsJobResponse,
+    DailyAggregate,
+    DatasetMetadata,
+    DatasetStatus,
+    JobStatus,
+    JobType,
 )
 from shared.repository import Repository
 

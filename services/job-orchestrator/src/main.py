@@ -4,31 +4,32 @@ Provides asynchronous MapReduce execution, idempotent submission tracking,
 real-time status polling, and failure recovery.
 """
 
-from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timezone
 import os
 import sys
 import uuid
-from typing import List, Optional
+from concurrent.futures import ThreadPoolExecutor
+from datetime import UTC, datetime
 
-from fastapi import FastAPI, Header, Request, Response, BackgroundTasks, status
+from fastapi import BackgroundTasks, FastAPI, Header, Request, Response, status
 from fastapi.responses import JSONResponse
-from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..")))
 
+from src.worker import execute_job_async
+
 from shared.errors import (
-    PlatformException, NotFoundException, AuthorizationException,
-    AuthenticationException, ValidationException, ConflictException
+    AuthenticationException,
+    ConflictException,
+    NotFoundException,
+    PlatformException,
+    ValidationException,
 )
 from shared.hdfs import get_hdfs_client
 from shared.logger import get_logger
-from shared.models import (
-    AnalyticsJobCreate, AnalyticsJobResponse, JobStatus, UserRole, AuditLogEntry
-)
+from shared.models import AnalyticsJobCreate, AnalyticsJobResponse, AuditLogEntry, JobStatus, UserRole
 from shared.repository import Repository
 from shared.security import decode_token, require_role
-from src.worker import execute_job_async
 
 logger = get_logger("job-orchestrator")
 hdfs_client = get_hdfs_client()
@@ -38,7 +39,7 @@ JOB_SUBMISSIONS = Counter("job_submissions_total", "Total jobs submitted", ["job
 JOB_LATENCY = Histogram("job_execution_duration_seconds", "Duration of MapReduce job execution")
 
 
-def get_current_user_context(authorization: Optional[str] = Header(None)) -> dict:
+def get_current_user_context(authorization: str | None = Header(None)) -> dict:
     if not authorization or not authorization.startswith("Bearer "):
         raise AuthenticationException("Missing or invalid Authorization header")
     token = authorization.split(" ")[1]
@@ -61,7 +62,7 @@ async def platform_exception_handler(request: Request, exc: PlatformException):
 
 @app.exception_handler(Exception)
 async def generic_exception_handler(request: Request, exc: Exception):
-    logger.error(f"Job orchestrator unhandled error: {str(exc)}", exc_info=True)
+    logger.error(f"Job orchestrator unhandled error: {exc!s}", exc_info=exc)
     return JSONResponse(
         status_code=500,
         content={
@@ -94,7 +95,7 @@ def metrics():
 def create_job(
     payload: AnalyticsJobCreate,
     background_tasks: BackgroundTasks,
-    authorization: Optional[str] = Header(None),
+    authorization: str | None = Header(None),
     request: Request = None,
 ):
     corr_id = request.headers.get("X-Correlation-ID", str(uuid.uuid4())) if request else str(uuid.uuid4())
@@ -157,10 +158,10 @@ def create_job(
     return job_record
 
 
-@app.get("/api/v1/jobs", response_model=List[AnalyticsJobResponse])
+@app.get("/api/v1/jobs", response_model=list[AnalyticsJobResponse])
 def list_jobs(
-    dataset_id: Optional[str] = None,
-    authorization: Optional[str] = Header(None),
+    dataset_id: str | None = None,
+    authorization: str | None = Header(None),
 ):
     user = get_current_user_context(authorization)
     return Repository.list_jobs(dataset_id=dataset_id, workspace_id=user.get("workspace_id"))
@@ -169,7 +170,7 @@ def list_jobs(
 @app.get("/api/v1/jobs/{job_id}", response_model=AnalyticsJobResponse)
 def get_job(
     job_id: str,
-    authorization: Optional[str] = Header(None),
+    authorization: str | None = Header(None),
     request: Request = None,
 ):
     corr_id = request.headers.get("X-Correlation-ID", str(uuid.uuid4())) if request else str(uuid.uuid4())
@@ -183,7 +184,7 @@ def get_job(
 @app.post("/api/v1/jobs/{job_id}/retry", response_model=AnalyticsJobResponse)
 def retry_job(
     job_id: str,
-    authorization: Optional[str] = Header(None),
+    authorization: str | None = Header(None),
     request: Request = None,
 ):
     corr_id = request.headers.get("X-Correlation-ID", str(uuid.uuid4())) if request else str(uuid.uuid4())
@@ -210,7 +211,7 @@ def retry_job(
 @app.post("/api/v1/jobs/{job_id}/cancel", response_model=AnalyticsJobResponse)
 def cancel_job(
     job_id: str,
-    authorization: Optional[str] = Header(None),
+    authorization: str | None = Header(None),
     request: Request = None,
 ):
     corr_id = request.headers.get("X-Correlation-ID", str(uuid.uuid4())) if request else str(uuid.uuid4())
@@ -225,6 +226,6 @@ def cancel_job(
         raise ConflictException(f"Cannot cancel job in terminal state '{job.status.value}'", request_id=corr_id)
 
     job.status = JobStatus.CANCELLED
-    job.end_time = datetime.now(timezone.utc)
+    job.end_time = datetime.now(UTC)
     Repository.save_job(job)
     return job

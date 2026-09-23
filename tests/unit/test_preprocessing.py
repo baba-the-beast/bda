@@ -1,11 +1,11 @@
 import os
 import sys
 import tempfile
-import pytest
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, BASE_DIR)
 from scripts.dev_server import prep_mod
+
 preprocess_dataset = prep_mod.preprocess_dataset
 
 
@@ -37,19 +37,19 @@ def test_preprocessing_and_missing_value_handling():
         assert report.extreme_candidate_count == 1  # row 3 (>8kW)
 
         # Check clean file content
-        with open(clean_path, "r", encoding="utf-8") as f:
+        with open(clean_path, encoding="utf-8") as f:
             lines = [ln.strip() for ln in f if ln.strip()]
         assert len(lines) == 3  # Header + 2 clean rows
         assert "2006-12-16T17:24:00Z,4.216" in lines[1]
         assert "2006-12-16T17:26:00Z,9.120" in lines[2]
 
         # Check rejected file content
-        with open(rej_path, "r", encoding="utf-8") as f:
+        with open(rej_path, encoding="utf-8") as f:
             rej_lines = [ln.strip() for ln in f if ln.strip()]
         assert len(rej_lines) == 4  # Header + 3 rejected lines
-        assert any("MISSING_VALUE_QUESTION_MARK" in l for l in rej_lines)
-        assert any("NUMERIC_CONVERSION_ERROR" in l for l in rej_lines)
-        assert any("INVALID_COLUMN_COUNT" in l for l in rej_lines)
+        assert any("MISSING_VALUE_QUESTION_MARK" in line for line in rej_lines)
+        assert any("NUMERIC_CONVERSION_ERROR" in line for line in rej_lines)
+        assert any("INVALID_COLUMN_COUNT" in line for line in rej_lines)
 
     finally:
         for p in (in_path, clean_path, rej_path):

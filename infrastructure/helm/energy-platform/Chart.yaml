@@ -4,6 +4,7 @@ description: Production-grade Kubernetes Helm chart for the Big Data Energy Cons
 type: application
 version: 1.0.0
 appVersion: "1.0.0"
+icon: https://raw.githubusercontent.com/baba-the-beast/bda/main/frontend/public/logo.svg
 maintainers:
   - name: BDA Engineering Team
     email: bda-team@bda-energy.internal

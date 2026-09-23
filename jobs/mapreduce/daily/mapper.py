@@ -27,7 +27,6 @@ def run_mapper():
             if len(parts) >= 9:
                 # Raw UCI row: Date;Time;GAP;GRP;V;GI;Sub1;Sub2;Sub3
                 d_raw = parts[0].strip()
-                t_raw = parts[1].strip()
                 try:
                     p_active = float(parts[2])
                     p_react = float(parts[3])

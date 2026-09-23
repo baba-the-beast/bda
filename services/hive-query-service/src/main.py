@@ -4,29 +4,33 @@ Provides secure, parameterized execution of HiveQL analytical templates,
 injection protection, query latency tracking, and tabular result sets.
 """
 
-from datetime import datetime, timezone
 import os
 import sys
 import uuid
-from typing import Any, Dict, List, Optional
+from datetime import UTC, datetime
+from typing import Any
 
-from fastapi import FastAPI, Header, Request, Response, status
+from fastapi import FastAPI, Header, Request, Response
 from fastapi.responses import JSONResponse
-from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
 from pydantic import BaseModel, Field
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..")))
 
-from shared.errors import (
-    PlatformException, NotFoundException, AuthorizationException,
-    AuthenticationException, ValidationException
+# validate_query_safety is re-exported so callers and the security suite can reach
+# the injection guard through the service surface rather than the engine internals.
+from src.engine import (  # noqa: F401
+    APPROVED_TEMPLATES,
+    execute_analytical_query,
+    validate_query_safety,
 )
+
+from shared.errors import AuthenticationException, NotFoundException, PlatformException, ValidationException
 from shared.hdfs import get_hdfs_client
 from shared.logger import get_logger
-from shared.models import UserRole, AuditLogEntry
+from shared.models import AuditLogEntry, UserRole
 from shared.repository import Repository
 from shared.security import decode_token, require_role
-from src.engine import APPROVED_TEMPLATES, execute_analytical_query, validate_query_safety
 
 logger = get_logger("hive-query-service")
 hdfs_client = get_hdfs_client()
@@ -35,7 +39,7 @@ HIVE_QUERIES = Counter("hive_queries_total", "Total Hive queries executed", ["te
 HIVE_LATENCY = Histogram("hive_query_duration_seconds", "Duration of Hive analytical queries", ["template"])
 
 
-def get_current_user_context(authorization: Optional[str] = Header(None)) -> dict:
+def get_current_user_context(authorization: str | None = Header(None)) -> dict:
     if not authorization or not authorization.startswith("Bearer "):
         raise AuthenticationException("Missing or invalid Authorization header")
     token = authorization.split(" ")[1]
@@ -58,7 +62,7 @@ async def platform_exception_handler(request: Request, exc: PlatformException):
 
 @app.exception_handler(Exception)
 async def generic_exception_handler(request: Request, exc: Exception):
-    logger.error(f"Hive query service unhandled error: {str(exc)}", exc_info=True)
+    logger.error(f"Hive query service unhandled error: {exc!s}", exc_info=exc)
     return JSONResponse(
         status_code=500,
         content={
@@ -103,7 +107,7 @@ def list_query_templates():
 class QueryExecutionRequest(BaseModel):
     dataset_id: str
     template_name: str
-    parameters: Dict[str, Any] = Field(default_factory=dict)
+    parameters: dict[str, Any] = Field(default_factory=dict)
 
 
 class QueryExecutionResponse(BaseModel):
@@ -112,16 +116,16 @@ class QueryExecutionResponse(BaseModel):
     dataset_id: str
     execution_duration_sec: float
     row_count: int
-    columns: List[str]
-    results: List[Dict[str, Any]]
-    records: List[Dict[str, Any]] = Field(default_factory=list)  # Alias for frontend compatibility
-    executed_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    columns: list[str]
+    results: list[dict[str, Any]]
+    records: list[dict[str, Any]] = Field(default_factory=list)  # Alias for frontend compatibility
+    executed_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 @app.post("/api/v1/hive/queries/execute", response_model=QueryExecutionResponse)
 def execute_query(
     payload: QueryExecutionRequest,
-    authorization: Optional[str] = Header(None),
+    authorization: str | None = Header(None),
     request: Request = None,
 ):
     corr_id = request.headers.get("X-Correlation-ID", str(uuid.uuid4())) if request else str(uuid.uuid4())
@@ -168,8 +172,8 @@ def execute_query(
             HIVE_QUERIES.labels(template=payload.template_name, status="success").inc()
         except Exception as e:
             HIVE_QUERIES.labels(template=payload.template_name, status="failure").inc()
-            logger.error(f"Query {payload.template_name} failed: {str(e)}", exc_info=True)
-            raise ValidationException(f"HiveQL query execution failed: {str(e)}", request_id=corr_id)
+            logger.exception(f"Query {payload.template_name} failed: {e!s}")
+            raise ValidationException(f"HiveQL query execution failed: {e!s}", request_id=corr_id) from e
 
     columns = list(records[0].keys()) if records else []
 

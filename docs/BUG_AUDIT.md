@@ -46,7 +46,13 @@ This audit catalogs architectural flaws, security vulnerabilities, silent failov
 #### BUG-HIGH-03: Industrial Substation SCADA Bleed-Through in Household Energy UI
 - **Location**: `frontend/src/pages/stitch/SubstationScreen.tsx:1-247`
 - **Root Cause**: The screen displayed fake industrial substation telemetry ("EMERGENCY SCADA TRIP INTERLOCK", "BUS TIE BREAKER 52-1", "25 MVA Transformer Loading Ratio", "18.24 MW 3-Phase Vectors"), which completely contradicted the UCI Individual Household dataset.
-- **Remediation**: Replaced screen with legitimate household **Voltage & Power Analysis** ($P \approx V \cdot I \cdot \cos\phi$, Voltage stability bands: <230V, 230-240V, 240-250V, >250V, current intensity correlation).
+- **Remediation (2026-09, corrected)**: The original entry claimed this was resolved, but
+  only the worst copy had been removed. The file was still `SubstationScreen.tsx`, the
+  sidebar still read "Transformer Substation", and the table read `row.band` / `row.count`
+  while the API sends `voltage_band` / `reading_count` — so it rendered fabricated figures
+  when the query failed and two blank columns when it succeeded. Fully replaced by
+  `src/features/voltage/VoltagePage.tsx`; see `docs/FRONTEND_AUDIT.md` F1.
+- **Original remediation note**: Replaced screen with legitimate household **Voltage & Power Analysis** ($P \approx V \cdot I \cdot \cos\phi$, Voltage stability bands: <230V, 230-240V, 240-250V, >250V, current intensity correlation).
 
 #### BUG-HIGH-04: Truncated Dataset Aggregation Limits in Overview & Submeter Analytics
 - **Location**: `services/analytics-service/src/main.py:140-195`, `shared/repository.py:210`

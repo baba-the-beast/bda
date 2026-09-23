@@ -13,7 +13,7 @@ Zero silent mock fallbacks.
 import os
 import subprocess
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from shared.engines.base import AnalyticsEngine, HiveEngine, StreamEngine
 from shared.logger import get_logger
@@ -24,16 +24,16 @@ logger = get_logger("full-bda-engine")
 class HadoopMapReduceEngine(AnalyticsEngine):
     """Executes authentic MapReduce jobs via Hadoop Streaming JAR on a live YARN/Hadoop cluster."""
 
-    def __init__(self, hadoop_home: Optional[str] = None):
-        self.hadoop_home = hadoop_home or os.getenv("HADOOP_HOME", "/opt/hadoop")
+    def __init__(self, hadoop_home: str | None = None):
+        self.hadoop_home: str = hadoop_home or os.environ.get("HADOOP_HOME") or "/opt/hadoop"
 
     def run_job(
         self,
         job_type: str,
         input_path: str,
         output_path: str,
-        parameters: Optional[Dict[str, Any]] = None,
-    ) -> Tuple[bool, str]:
+        parameters: dict[str, Any] | None = None,
+    ) -> tuple[bool, str]:
         jt = job_type.upper()
         streaming_jar = os.path.join(self.hadoop_home, "share", "hadoop", "tools", "lib", "hadoop-streaming.jar")
 
@@ -57,7 +57,7 @@ class HadoopMapReduceEngine(AnalyticsEngine):
 
         logger.info(f"[FULL_BDA] Submitting Hadoop Streaming MapReduce job: {' '.join(cmd)}")
         try:
-            res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
+            res = subprocess.run(cmd, capture_output=True, text=True, check=True)
             return True, f"[FULL_BDA] Hadoop MapReduce {jt} succeeded:\n{res.stdout}"
         except subprocess.CalledProcessError as e:
             err_msg = f"Hadoop MapReduce failed with exit code {e.returncode}: {e.stderr}"
@@ -75,7 +75,7 @@ class HadoopMapReduceEngine(AnalyticsEngine):
 class HiveServerAnalyticsEngine(HiveEngine):
     """Executes HiveQL analytical queries against an active Apache HiveServer2 instance."""
 
-    def __init__(self, hive_host: Optional[str] = None, hive_port: int = 10000):
+    def __init__(self, hive_host: str | None = None, hive_port: int = 10000):
         self.hive_host = hive_host or os.getenv("HIVE_SERVER2_HOST", "hiveserver2")
         self.hive_port = int(os.getenv("HIVE_SERVER2_PORT", str(hive_port)))
 
@@ -83,8 +83,8 @@ class HiveServerAnalyticsEngine(HiveEngine):
         self,
         template_name: str,
         dataset_csv_path: str,
-        parameters: Optional[Dict[str, Any]] = None,
-    ) -> Tuple[List[Dict[str, Any]], float]:
+        parameters: dict[str, Any] | None = None,
+    ) -> tuple[list[dict[str, Any]], float]:
         start_time = time.time()
         logger.info(f"[FULL_BDA] Connecting to HiveServer2 at {self.hive_host}:{self.hive_port} for {template_name}")
 
@@ -93,16 +93,20 @@ class HiveServerAnalyticsEngine(HiveEngine):
             conn = hive.Connection(host=self.hive_host, port=self.hive_port, username="bda")
             cursor = conn.cursor()
             # In FULL_BDA, queries execute on the hive external table pointing to HDFS cleaned CSV
-            cursor.execute(f"SELECT * FROM energy_cleaned_{template_name} LIMIT 50")
+            # Defence in depth: callers already whitelist template_name against
+            # APPROVED_TEMPLATES, and a table suffix can only ever be an identifier.
+            if not template_name.isidentifier():
+                raise ValueError(f"Illegal query template name: {template_name!r}")
+            cursor.execute(f"SELECT * FROM energy_cleaned_{template_name} LIMIT 50")  # noqa: S608
             records = cursor.fetchall()
             duration = round(time.time() - start_time, 4)
             cursor.close()
             conn.close()
             return [{"row": r} for r in records], duration
-        except ImportError:
-            raise RuntimeError("pyhive is required for FULL_BDA mode. Install pyhive and thrift.")
+        except ImportError as e:
+            raise RuntimeError("pyhive is required for FULL_BDA mode. Install pyhive and thrift.") from e
         except Exception as e:
-            raise RuntimeError(f"HiveServer2 execution failed: {str(e)}. Fail-closed in FULL_BDA mode.")
+            raise RuntimeError(f"HiveServer2 execution failed: {e!s}. Fail-closed in FULL_BDA mode.") from e
 
 
 class SparkStreamingEngine(StreamEngine):
@@ -110,7 +114,7 @@ class SparkStreamingEngine(StreamEngine):
 
     def __init__(self):
         self.is_running = False
-        self.dataset_id: Optional[str] = None
+        self.dataset_id: str | None = None
 
     def start_stream(
         self,
@@ -132,7 +136,7 @@ class SparkStreamingEngine(StreamEngine):
     def stop(self) -> None:
         self.is_running = False
 
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> dict[str, Any]:
         return {
             "mode": "FULL_BDA",
             "is_running": self.is_running,

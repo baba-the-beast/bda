@@ -6,16 +6,14 @@ Consumes real-time smart meter telemetry from Kafka, executes watermarked window
 
 import os
 import sys
-from datetime import datetime, timezone
-from typing import Iterator
+from datetime import UTC, datetime
 
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import (
-    col, from_json, to_timestamp, window, avg, max as spark_max, min as spark_min, count, sum as spark_sum, expr
-)
-from pyspark.sql.types import (
-    StructType, StructField, StringType, DoubleType, LongType
-)
+from pyspark.sql.functions import avg, col, count, expr, from_json, to_timestamp, window
+from pyspark.sql.functions import max as spark_max
+from pyspark.sql.functions import min as spark_min
+from pyspark.sql.functions import sum as spark_sum
+from pyspark.sql.types import DoubleType, StringType, StructField, StructType
 
 # Configuration from environment
 KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
@@ -76,7 +74,7 @@ def write_batch_to_mongodb(batch_df, batch_id: int):
                 "event_rate": round(float(row["reading_count"]) / 60.0, 2),
                 "sub_metering_total": round(float(row["sub_metering_total"] or 0.0), 2),
                 "recent_trend": "RISING" if float(row["avg_power"]) > 2.5 else "STABLE",
-                "computed_at": datetime.now(timezone.utc).isoformat(),
+                "computed_at": datetime.now(UTC).isoformat(),
                 "batch_id": batch_id,
             }
 
@@ -95,7 +93,7 @@ def write_batch_to_mongodb(batch_df, batch_id: int):
 
     except Exception as e:
         print(f"[ERROR] Failed to persist micro-batch {batch_id} to MongoDB: {e}", file=sys.stderr)
-        raise e
+        raise
 
 
 def start_streaming():

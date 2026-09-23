@@ -3,9 +3,21 @@ Unit tests for Hadoop MapReduce mappers, reducers, and local streaming execution
 """
 
 import os
+import shutil
 import tempfile
+
 import pytest
+
 from jobs.mapreduce.runner import LocalStreamingPipelineRunner
+
+
+def _job_output_path(suffix: str = ".txt") -> str:
+    """Path for a job to create, inside a private directory.
+
+    The pipeline needs a path that does not exist yet, so NamedTemporaryFile is not
+    usable here and tempfile.mktemp is deprecated and race-prone.
+    """
+    return os.path.join(tempfile.mkdtemp(prefix="bda-mr-"), f"output{suffix}")
 
 
 @pytest.fixture
@@ -28,14 +40,14 @@ def sample_cleaned_dataset():
 
 
 def test_daily_mapreduce_job(sample_cleaned_dataset):
-    out_path = tempfile.mktemp(suffix=".txt")
+    out_path = _job_output_path()
     try:
-        success, msg = LocalStreamingPipelineRunner.run_pipeline(
+        success, _msg = LocalStreamingPipelineRunner.run_pipeline(
             "DAILY", sample_cleaned_dataset, out_path
         )
         assert success is True
-        with open(out_path, "r") as f:
-            lines = [l.strip() for l in f if l.strip()]
+        with open(out_path) as f:
+            lines = [line.strip() for line in f if line.strip()]
 
         assert len(lines) == 2  # 2 distinct dates: 2006-12-16 and 2006-12-17
         # First date: 2.4 + 3.6 + 6.0 = 12.0 kW total minutes -> 12.0 / 60 = 0.2000 kWh
@@ -46,61 +58,57 @@ def test_daily_mapreduce_job(sample_cleaned_dataset):
         assert float(d1_vals[1]) == pytest.approx(4.0000, abs=1e-4)  # avg_power = 12.0 / 3
         assert int(d1_vals[7]) == 3  # reading count
     finally:
-        if os.path.exists(out_path):
-            os.remove(out_path)
+        shutil.rmtree(os.path.dirname(out_path), ignore_errors=True)
 
 
 def test_hourly_mapreduce_job(sample_cleaned_dataset):
-    out_path = tempfile.mktemp(suffix=".txt")
+    out_path = _job_output_path()
     try:
-        success, msg = LocalStreamingPipelineRunner.run_pipeline(
+        success, _msg = LocalStreamingPipelineRunner.run_pipeline(
             "HOURLY", sample_cleaned_dataset, out_path
         )
         assert success is True
-        with open(out_path, "r") as f:
-            lines = [l.strip() for l in f if l.strip()]
+        with open(out_path) as f:
+            lines = [line.strip() for line in f if line.strip()]
 
         assert len(lines) == 3  # hours 08, 17, 18
-        hours = [l.split("\t")[0] for l in lines]
+        hours = [line.split("\t")[0] for line in lines]
         assert "08" in hours
         assert "17" in hours
         assert "18" in hours
     finally:
-        if os.path.exists(out_path):
-            os.remove(out_path)
+        shutil.rmtree(os.path.dirname(out_path), ignore_errors=True)
 
 
 def test_monthly_mapreduce_job(sample_cleaned_dataset):
-    out_path = tempfile.mktemp(suffix=".txt")
+    out_path = _job_output_path()
     try:
-        success, msg = LocalStreamingPipelineRunner.run_pipeline(
+        success, _msg = LocalStreamingPipelineRunner.run_pipeline(
             "MONTHLY", sample_cleaned_dataset, out_path
         )
         assert success is True
-        with open(out_path, "r") as f:
-            lines = [l.strip() for l in f if l.strip()]
+        with open(out_path) as f:
+            lines = [line.strip() for line in f if line.strip()]
 
         assert len(lines) == 1  # 2006-12
         assert lines[0].startswith("2006-12")
     finally:
-        if os.path.exists(out_path):
-            os.remove(out_path)
+        shutil.rmtree(os.path.dirname(out_path), ignore_errors=True)
 
 
 def test_peak_mapreduce_job(sample_cleaned_dataset):
-    out_path = tempfile.mktemp(suffix=".txt")
+    out_path = _job_output_path()
     try:
         # Default threshold is 4.0 kW, row 3 has active power 6.000 kW
-        success, msg = LocalStreamingPipelineRunner.run_pipeline(
+        success, _msg = LocalStreamingPipelineRunner.run_pipeline(
             "PEAK", sample_cleaned_dataset, out_path, env_vars={"PEAK_THRESHOLD_KW": "4.0"}
         )
         assert success is True
-        with open(out_path, "r") as f:
-            lines = [l.strip() for l in f if l.strip()]
+        with open(out_path) as f:
+            lines = [line.strip() for line in f if line.strip()]
 
         assert len(lines) >= 1
         peak_entry = lines[0].split("\t")[1]
         assert "6.000" in peak_entry
     finally:
-        if os.path.exists(out_path):
-            os.remove(out_path)
+        shutil.rmtree(os.path.dirname(out_path), ignore_errors=True)

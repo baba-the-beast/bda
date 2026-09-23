@@ -5,9 +5,11 @@ Verifies execution correctness, schema conformance, and fail-closed behaviors.
 import importlib.util
 import os
 import tempfile
+
 import pytest
-from shared.engines.render_lite import RenderLiteAnalyticsEngine, DuckDBAnalyticsEngine
+
 from shared.engines.full_bda import HadoopMapReduceEngine, HiveServerAnalyticsEngine, SparkStreamingEngine
+from shared.engines.render_lite import DuckDBAnalyticsEngine, RenderLiteAnalyticsEngine
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 cleaner_path = os.path.join(BASE_DIR, "services", "preprocessing-service", "src", "cleaner.py")
@@ -42,10 +44,10 @@ def test_render_lite_daily_aggregation(cleaned_sample_csv):
     with tempfile.TemporaryDirectory() as out_dir:
         out_txt = os.path.join(out_dir, "daily_out.txt")
         engine = RenderLiteAnalyticsEngine()
-        success, msg = engine.run_job("DAILY", cleaned_sample_csv, out_txt)
+        success, _msg = engine.run_job("DAILY", cleaned_sample_csv, out_txt)
         assert success is True
         assert os.path.exists(out_txt)
-        with open(out_txt, "r") as f:
+        with open(out_txt) as f:
             lines = f.readlines()
         assert len(lines) > 0
         first_line = lines[0].strip().split("\t")
@@ -56,10 +58,10 @@ def test_render_lite_hourly_aggregation(cleaned_sample_csv):
     with tempfile.TemporaryDirectory() as out_dir:
         out_txt = os.path.join(out_dir, "hourly_out.txt")
         engine = RenderLiteAnalyticsEngine()
-        success, msg = engine.run_job("HOURLY", cleaned_sample_csv, out_txt)
+        success, _msg = engine.run_job("HOURLY", cleaned_sample_csv, out_txt)
         assert success is True
         assert os.path.exists(out_txt)
-        with open(out_txt, "r") as f:
+        with open(out_txt) as f:
             lines = f.readlines()
         assert len(lines) > 0
 
@@ -68,10 +70,10 @@ def test_render_lite_monthly_aggregation(cleaned_sample_csv):
     with tempfile.TemporaryDirectory() as out_dir:
         out_txt = os.path.join(out_dir, "monthly_out.txt")
         engine = RenderLiteAnalyticsEngine()
-        success, msg = engine.run_job("MONTHLY", cleaned_sample_csv, out_txt)
+        success, _msg = engine.run_job("MONTHLY", cleaned_sample_csv, out_txt)
         assert success is True
         assert os.path.exists(out_txt)
-        with open(out_txt, "r") as f:
+        with open(out_txt) as f:
             lines = f.readlines()
         assert len(lines) > 0
 
@@ -80,10 +82,10 @@ def test_render_lite_peak_aggregation(cleaned_sample_csv):
     with tempfile.TemporaryDirectory() as out_dir:
         out_txt = os.path.join(out_dir, "peak_out.txt")
         engine = RenderLiteAnalyticsEngine()
-        success, msg = engine.run_job("PEAK", cleaned_sample_csv, out_txt, parameters={"threshold_kw": 2.0})
+        success, _msg = engine.run_job("PEAK", cleaned_sample_csv, out_txt, parameters={"threshold_kw": 2.0})
         assert success is True
         assert os.path.exists(out_txt)
-        with open(out_txt, "r") as f:
+        with open(out_txt) as f:
             lines = f.readlines()
         assert len(lines) > 0
 

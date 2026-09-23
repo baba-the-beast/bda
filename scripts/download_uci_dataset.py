@@ -3,11 +3,11 @@ Official UCI Household Electric Power Consumption Dataset Downloader & Verifier.
 URL: https://archive.ics.uci.edu/static/public/235/individual+household+electric+power+consumption.zip
 """
 
+import hashlib
 import os
 import sys
-import zipfile
-import hashlib
 import urllib.request
+import zipfile
 
 DATA_DIR = os.getenv("DATA_DIR", os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data")))
 DATASET_URL = "https://archive.ics.uci.edu/static/public/235/individual+household+electric+power+consumption.zip"
@@ -43,7 +43,7 @@ def download_and_extract():
         return TARGET_TXT
     except Exception as e:
         print(f"[WARN] Failed to download from official UCI mirror: {e}", file=sys.stderr)
-        print(f"[INFO] You can run scripts/generate_sample_data.py to create high-fidelity sample data.", file=sys.stderr)
+        print("[INFO] You can run scripts/generate_sample_data.py to create high-fidelity sample data.", file=sys.stderr)
         return None
 
 

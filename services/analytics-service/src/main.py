@@ -10,22 +10,23 @@ import json
 import os
 import sys
 import uuid
-from typing import Any, Dict, List, Optional
 
-from fastapi import FastAPI, Header, Query, Request, Response, status
-from fastapi.responses import JSONResponse, StreamingResponse
-from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
+from fastapi import FastAPI, Header, Query, Request, Response
+from fastapi.responses import JSONResponse
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, generate_latest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..")))
 
-from shared.errors import (
-    PlatformException, NotFoundException, AuthorizationException,
-    AuthenticationException, ValidationException
-)
+from shared.errors import AuthenticationException, PlatformException
 from shared.logger import get_logger
 from shared.models import (
-    DailyAggregate, HourlyAggregate, MonthlyAggregate, PeakEvent,
-    UserRole, AuditLogEntry, JobStatus
+    AuditLogEntry,
+    DailyAggregate,
+    HourlyAggregate,
+    JobStatus,
+    MonthlyAggregate,
+    PeakEvent,
+    UserRole,
 )
 from shared.repository import Repository
 from shared.security import decode_token, require_role
@@ -36,7 +37,7 @@ ANALYTICS_REQUESTS = Counter("analytics_requests_total", "Total analytics API re
 EXPORT_COUNTER = Counter("analytics_exports_total", "Total analytical exports", ["format"])
 
 
-def get_current_user_context(authorization: Optional[str] = Header(None)) -> dict:
+def get_current_user_context(authorization: str | None = Header(None)) -> dict:
     if not authorization or not authorization.startswith("Bearer "):
         raise AuthenticationException("Missing or invalid Authorization header")
     token = authorization.split(" ")[1]
@@ -59,7 +60,7 @@ async def platform_exception_handler(request: Request, exc: PlatformException):
 
 @app.exception_handler(Exception)
 async def generic_exception_handler(request: Request, exc: Exception):
-    logger.error(f"Analytics service unhandled error: {str(exc)}", exc_info=True)
+    logger.error(f"Analytics service unhandled error: {exc!s}", exc_info=exc)
     return JSONResponse(
         status_code=500,
         content={
@@ -88,42 +89,42 @@ def metrics():
     return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
-@app.get("/api/v1/analytics/daily", response_model=List[DailyAggregate])
+@app.get("/api/v1/analytics/daily", response_model=list[DailyAggregate])
 def get_daily_analytics(
     dataset_id: str = Query(..., description="Dataset identifier"),
     limit: int = Query(365, ge=1, le=1500),
-    authorization: Optional[str] = Header(None),
+    authorization: str | None = Header(None),
 ):
     _user = get_current_user_context(authorization)
     ANALYTICS_REQUESTS.labels(view="daily").inc()
     return Repository.get_daily_aggregates(dataset_id, limit=limit)
 
 
-@app.get("/api/v1/analytics/hourly", response_model=List[HourlyAggregate])
+@app.get("/api/v1/analytics/hourly", response_model=list[HourlyAggregate])
 def get_hourly_analytics(
     dataset_id: str = Query(..., description="Dataset identifier"),
-    authorization: Optional[str] = Header(None),
+    authorization: str | None = Header(None),
 ):
     _user = get_current_user_context(authorization)
     ANALYTICS_REQUESTS.labels(view="hourly").inc()
     return Repository.get_hourly_aggregates(dataset_id)
 
 
-@app.get("/api/v1/analytics/monthly", response_model=List[MonthlyAggregate])
+@app.get("/api/v1/analytics/monthly", response_model=list[MonthlyAggregate])
 def get_monthly_analytics(
     dataset_id: str = Query(..., description="Dataset identifier"),
-    authorization: Optional[str] = Header(None),
+    authorization: str | None = Header(None),
 ):
     _user = get_current_user_context(authorization)
     ANALYTICS_REQUESTS.labels(view="monthly").inc()
     return Repository.get_monthly_aggregates(dataset_id)
 
 
-@app.get("/api/v1/analytics/peak", response_model=List[PeakEvent])
+@app.get("/api/v1/analytics/peak", response_model=list[PeakEvent])
 def get_peak_analytics(
     dataset_id: str = Query(..., description="Dataset identifier"),
     limit: int = Query(50, ge=1, le=200),
-    authorization: Optional[str] = Header(None),
+    authorization: str | None = Header(None),
 ):
     _user = get_current_user_context(authorization)
     ANALYTICS_REQUESTS.labels(view="peak").inc()
@@ -133,7 +134,7 @@ def get_peak_analytics(
 @app.get("/api/v1/analytics/submeters")
 def get_submeter_comparison(
     dataset_id: str = Query(..., description="Dataset identifier"),
-    authorization: Optional[str] = Header(None),
+    authorization: str | None = Header(None),
 ):
     _user = get_current_user_context(authorization)
     ANALYTICS_REQUESTS.labels(view="submeters").inc()
@@ -159,8 +160,8 @@ def get_submeter_comparison(
 
 @app.get("/api/v1/analytics/overview")
 def get_overview_summary(
-    dataset_id: Optional[str] = None,
-    authorization: Optional[str] = Header(None),
+    dataset_id: str | None = None,
+    authorization: str | None = Header(None),
 ):
     _user = get_current_user_context(authorization)
     datasets = Repository.list_datasets()
@@ -207,7 +208,7 @@ def get_overview_summary(
 
 @app.get("/api/v1/analytics/metrics")
 def get_bda_project_metrics(
-    authorization: Optional[str] = Header(None),
+    authorization: str | None = Header(None),
 ):
     """
     BDA Project Verification Metrics.
@@ -264,7 +265,7 @@ def export_analytical_data(
     dataset_id: str = Query(..., description="Dataset ID"),
     export_type: str = Query("daily", pattern="^(daily|hourly|monthly|peak)$"),
     export_format: str = Query("csv", pattern="^(csv|json)$"),
-    authorization: Optional[str] = Header(None),
+    authorization: str | None = Header(None),
     request: Request = None,
 ):
     corr_id = request.headers.get("X-Correlation-ID", str(uuid.uuid4())) if request else str(uuid.uuid4())

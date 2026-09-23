@@ -1,89 +1,72 @@
-import React, { useState, useEffect } from 'react';
-import { User } from '../types';
+import { LogOut } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
-interface NavbarProps {
+import type { User } from '../lib/api/endpoints';
+
+import { Button } from './ui/Button';
+
+export interface NavbarProps {
   user: User | null;
   onLogout: () => void;
-  isDark: boolean;
-  onToggleTheme: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
-  const [utcTime, setUtcTime] = useState<string>('');
+/**
+ * Application header.
+ *
+ * It deliberately carries no telemetry. The previous version rendered five
+ * hardcoded readouts — grid frequency, ingest p99, trip count, cluster node and
+ * a sync indicator — none backed by anything, and one of them (60.02 Hz) wrong
+ * for a European dataset. Service health belongs on Overview, sourced from the
+ * gateway (docs/FRONTEND_AUDIT.md F2).
+ */
+export function Navbar({ user, onLogout }: NavbarProps) {
+  const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
-    const updateTime = () => {
-      const now = new Date();
-      setUtcTime(now.toISOString().slice(11, 23));
+    // One tick a second. The previous 200 ms interval re-rendered the header
+    // five times a second on every page, forever.
+    const interval = setInterval(() => {
+      setNow(new Date());
+    }, 1000);
+    return () => {
+      clearInterval(interval);
     };
-    updateTime();
-    const interval = setInterval(updateTime, 200);
-    return () => clearInterval(interval);
   }, []);
 
   return (
-    <header className="h-14 bg-surface-container-lowest border-b border-outline-variant px-margin flex items-center justify-between sticky top-0 z-50 font-sans">
-      {/* Left: Brand Identity */}
-      <div className="flex items-center gap-space-lg">
-        <div className="flex items-center gap-2">
-          <img src="/logo.svg" alt="VoltPulse Industrial Telemetry Logo" className="h-8 w-8 object-contain" />
-          <div className="flex flex-col">
-            <span className="font-mono text-base font-bold text-on-surface tracking-wider">GRIDPULSE</span>
-            <span className="font-mono text-[10px] text-outline tracking-wider uppercase">Energy Analytics Telemetry</span>
-          </div>
-        </div>
+    <header className="sticky top-0 z-header flex h-12 items-center justify-between border-b border-border bg-surface px-4">
+      <div className="flex items-center gap-2">
+        <img src="/logo.svg" alt="" aria-hidden className="size-6" />
+        <span className="text-sm font-semibold tracking-wide text-text">GridPulse</span>
+        <span className="hidden text-2xs text-text-subtle sm:inline">Energy Analytics</span>
       </div>
 
-      {/* Center: Live SCADA Telemetry Status Pills */}
-      <div className="hidden xl:flex items-center gap-space-sm font-mono text-xs">
-        <div className="flex items-center gap-space-xs bg-surface-container-low border border-outline-variant px-space-md py-1">
-          <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-          <span className="text-outline">GRID FREQ:</span>
-          <span className="text-primary font-bold">60.02 Hz</span>
-        </div>
-
-        <div className="flex items-center gap-space-xs bg-surface-container-low border border-outline-variant px-space-md py-1">
-          <span className="text-outline">INGEST P99:</span>
-          <span className="text-on-surface font-semibold">18ms</span>
-        </div>
-
-        <div className="flex items-center gap-space-xs bg-surface-container-low border border-outline-variant px-space-md py-1">
-          <span className="text-outline">TRIPS:</span>
-          <span className="text-primary font-semibold">0 CRIT</span>
-        </div>
-
-        <div className="flex items-center gap-space-xs bg-surface-container-low border border-outline-variant px-space-md py-1">
-          <span className="text-outline">CLUSTER:</span>
-          <span className="text-secondary font-semibold">K8S // NODE-EAST-04 SYNCD</span>
-        </div>
-      </div>
-
-      {/* Right: Clock & User Profile */}
-      <div className="flex items-center gap-space-lg font-mono">
-        <div className="hidden md:flex flex-col text-right">
-          <span className="text-xs text-on-surface font-semibold">UTC {utcTime}</span>
-          <span className="text-[10px] text-primary font-bold">SCADA SYNC OK</span>
-        </div>
+      <div className="flex items-center gap-4">
+        <time
+          dateTime={now.toISOString()}
+          data-numeric
+          className="hidden text-xs text-text-muted md:inline"
+        >
+          {now.toISOString().slice(11, 19)} UTC
+        </time>
 
         {user && (
-          <div className="flex items-center gap-space-md pl-space-md border-l border-outline-variant">
-            <div className="hidden sm:flex flex-col text-right">
-              <span className="text-xs font-semibold text-on-surface">{user.full_name}</span>
-              <span className="text-[10px] text-primary uppercase font-bold">{user.role}</span>
+          <div className="flex items-center gap-3 border-l border-border pl-4">
+            <div className="hidden flex-col text-right sm:flex">
+              <span className="text-xs font-medium text-text">{user.full_name}</span>
+              <span className="text-2xs uppercase tracking-wide text-text-subtle">{user.role}</span>
             </div>
-
-            <button
-              type="button"
+            <Button
+              size="sm"
+              variant="ghost"
               onClick={onLogout}
-              className="h-8 px-2.5 bg-surface-container hover:bg-error/20 text-on-surface hover:text-error border border-outline-variant hover:border-error text-xs transition-colors flex items-center gap-1 font-mono"
-              title="Sign Out"
+              icon={<LogOut aria-hidden className="size-3.5" />}
             >
-              <span className="material-symbols-outlined text-[16px]">logout</span>
-              <span className="hidden sm:inline">EXIT</span>
-            </button>
+              Sign out
+            </Button>
           </div>
         )}
       </div>
     </header>
   );
-};
+}

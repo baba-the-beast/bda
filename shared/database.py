@@ -6,7 +6,8 @@ and graceful connection teardown.
 
 import os
 import time
-from typing import Optional
+from typing import Any
+
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
 
@@ -16,10 +17,10 @@ MONGO_URI = os.getenv(
 )
 DATABASE_NAME = os.getenv("MONGO_DB_NAME", "bda_energy")
 
-_client: Optional[MongoClient] = None
+_client: MongoClient | None = None
 
 
-def get_mongo_client(max_retries: int = 2, retry_delay: float = 0.5) -> Optional[MongoClient]:
+def get_mongo_client(max_retries: int = 2, retry_delay: float = 0.5) -> MongoClient | None:
     global _client
     if _client is not None:
         try:
@@ -30,7 +31,7 @@ def get_mongo_client(max_retries: int = 2, retry_delay: float = 0.5) -> Optional
 
     for attempt in range(max_retries):
         try:
-            client = MongoClient(
+            client: MongoClient[dict[str, Any]] = MongoClient(
                 MONGO_URI,
                 serverSelectionTimeoutMS=2000,
                 connectTimeoutMS=2000,

@@ -1,24 +1,26 @@
-# Python
+# Python build artefacts. Anchored with a leading slash: unanchored, these
+# match any directory of the same name at any depth, and `lib/` silently
+# excluded frontend/src/lib/.
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-env/
+/env/
 venv/
 .venv/
-build/
-develop-eggs/
+/build/
+/develop-eggs/
 dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
+/downloads/
+/eggs/
+/.eggs/
+/lib/
+/lib64/
+/parts/
+/sdist/
+/var/
+/wheels/
 *.egg-info/
 .installed.cfg
 *.egg
@@ -27,6 +29,7 @@ wheels/
 .pytest_cache/
 .ruff_cache/
 .coverage
+coverage.xml
 htmlcov/
 .tox/
 
@@ -35,6 +38,11 @@ node_modules/
 frontend/node_modules/
 frontend/dist/
 .npm/
+frontend/playwright-report/
+frontend/test-results/
+frontend/coverage/
+frontend/lighthouse-report.html
+frontend/screenshots/
 
 # Large Datasets and Extracted Files
 data/raw/*.txt

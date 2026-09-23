@@ -7,16 +7,15 @@ Features:
 - In-process sliding (5m) & tumbling (1m) window stream processor
 """
 
-from collections import defaultdict
 import csv
-from datetime import datetime, timezone
 import os
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from collections import defaultdict
+from typing import Any
 
 import duckdb
 
-from shared.engines.base import AnalyticsEngine, HiveEngine, StreamEngine
+from shared.engines.base import AnalyticsEngine, HiveEngine
 from shared.logger import get_logger
 
 logger = get_logger("render-lite-engine")
@@ -33,8 +32,8 @@ class RenderLiteAnalyticsEngine(AnalyticsEngine):
         job_type: str,
         input_path: str,
         output_path: str,
-        parameters: Optional[Dict[str, Any]] = None,
-    ) -> Tuple[bool, str]:
+        parameters: dict[str, Any] | None = None,
+    ) -> tuple[bool, str]:
         if not os.path.exists(input_path):
             return False, f"Input dataset not found at {input_path}"
 
@@ -58,17 +57,17 @@ class RenderLiteAnalyticsEngine(AnalyticsEngine):
             duration = time.time() - start_ts
             return True, f"[RENDER_LITE] Processed {jt} job in {duration:.2f}s, produced {count} records."
         except Exception as e:
-            logger.error(f"RenderLite job execution failed: {e}", exc_info=True)
-            return False, f"Execution failed: {str(e)}"
+            logger.exception(f"RenderLite job execution failed: {e}")
+            return False, f"Execution failed: {e!s}"
 
     def _aggregate_daily(self, input_csv: str, output_txt: str) -> int:
         # Schema: timestamp,global_active_power,global_reactive_power,voltage,global_intensity,sub_metering_1,sub_metering_2,sub_metering_3,date,hour,day,month,year
         # Daily state: date -> [sum_p, min_p, max_p, sum_s1, sum_s2, sum_s3, count]
-        stats = defaultdict(lambda: [0.0, float("inf"), float("-inf"), 0.0, 0.0, 0.0, 0])
+        stats: defaultdict[str, list[float]] = defaultdict(lambda: [0.0, float("inf"), float("-inf"), 0.0, 0.0, 0.0, 0])
 
-        with open(input_csv, "r", encoding="utf-8") as f:
+        with open(input_csv, encoding="utf-8") as f:
             reader = csv.reader(f)
-            header = next(reader, None)
+            next(reader, None)  # discard header row
             for row in reader:
                 if len(row) < 13:
                     continue
@@ -108,11 +107,11 @@ class RenderLiteAnalyticsEngine(AnalyticsEngine):
         return written
 
     def _aggregate_hourly(self, input_csv: str, output_txt: str) -> int:
-        stats = defaultdict(lambda: [0.0, float("inf"), float("-inf"), 0])
+        stats: defaultdict[int, list[float]] = defaultdict(lambda: [0.0, float("inf"), float("-inf"), 0])
 
-        with open(input_csv, "r", encoding="utf-8") as f:
+        with open(input_csv, encoding="utf-8") as f:
             reader = csv.reader(f)
-            header = next(reader, None)
+            next(reader, None)  # discard header row
             for row in reader:
                 if len(row) < 13:
                     continue
@@ -143,11 +142,11 @@ class RenderLiteAnalyticsEngine(AnalyticsEngine):
         return written
 
     def _aggregate_monthly(self, input_csv: str, output_txt: str) -> int:
-        stats = defaultdict(lambda: [0.0, float("inf"), float("-inf"), 0])
+        stats: defaultdict[str, list[float]] = defaultdict(lambda: [0.0, float("inf"), float("-inf"), 0])
 
-        with open(input_csv, "r", encoding="utf-8") as f:
+        with open(input_csv, encoding="utf-8") as f:
             reader = csv.reader(f)
-            header = next(reader, None)
+            next(reader, None)  # discard header row
             for row in reader:
                 if len(row) < 13:
                     continue
@@ -178,11 +177,11 @@ class RenderLiteAnalyticsEngine(AnalyticsEngine):
         return written
 
     def _aggregate_peak(self, input_csv: str, output_txt: str, threshold_kw: float) -> int:
-        peaks = defaultdict(lambda: [None, float("-inf"), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0])
+        peaks: defaultdict[str, list[Any]] = defaultdict(lambda: [None, float("-inf"), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0])
 
-        with open(input_csv, "r", encoding="utf-8") as f:
+        with open(input_csv, encoding="utf-8") as f:
             reader = csv.reader(f)
-            header = next(reader, None)
+            next(reader, None)  # discard header row
             for row in reader:
                 if len(row) < 13:
                     continue
@@ -237,8 +236,8 @@ class DuckDBAnalyticsEngine(HiveEngine):
         self,
         template_name: str,
         dataset_csv_path: str,
-        parameters: Optional[Dict[str, Any]] = None,
-    ) -> Tuple[List[Dict[str, Any]], float]:
+        parameters: dict[str, Any] | None = None,
+    ) -> tuple[list[dict[str, Any]], float]:
         start_time = time.time()
         conn = duckdb.connect(":memory:")
 
@@ -270,7 +269,7 @@ class DuckDBAnalyticsEngine(HiveEngine):
                 LIMIT {limit}
             """
         elif template_name == "hourly_pattern":
-            query = f"""
+            query = """
                 SELECT
                     hour,
                     ROUND(SUM(global_active_power) / 60.0, 3) as total_kwh,
@@ -283,7 +282,7 @@ class DuckDBAnalyticsEngine(HiveEngine):
                 ORDER BY hour ASC
             """
         elif template_name == "monthly_trends":
-            query = f"""
+            query = """
                 SELECT
                     year,
                     month,
@@ -327,7 +326,7 @@ class DuckDBAnalyticsEngine(HiveEngine):
                 LIMIT {limit}
             """
         elif template_name == "voltage_intensity_correlation":
-            query = f"""
+            query = """
                 SELECT
                     CASE
                         WHEN voltage < 235.0 THEN 'Low Voltage (<235V)'

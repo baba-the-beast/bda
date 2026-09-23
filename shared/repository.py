@@ -5,23 +5,32 @@ Integrates with MongoDB with an internal thread-safe fallback cache for testing.
 Enforces fail-closed semantics in DATA_STORE_MODE=mongodb.
 """
 
-from datetime import datetime, timezone
 import os
 import threading
-from typing import Any, Dict, List, Optional
-from pymongo import ReplaceOne, UpdateOne
+from typing import Any
+
+from pymongo import UpdateOne
 
 from shared.database import get_database as _raw_get_database
 from shared.errors import DatabaseConnectionException
+from shared.logger import get_logger
 from shared.models import (
-    DailyAggregate, HourlyAggregate, MonthlyAggregate, PeakEvent, StreamWindow,
-    DatasetMetadata, AnalyticsJobResponse, AuditLogEntry, SecurityEventEntry,
-    UserResponse, JobStatus, DatasetStatus, SessionRecord
+    AnalyticsJobResponse,
+    AuditLogEntry,
+    DailyAggregate,
+    DatasetMetadata,
+    HourlyAggregate,
+    MonthlyAggregate,
+    PeakEvent,
+    SecurityEventEntry,
+    StreamWindow,
 )
+
+logger = get_logger("repository")
 
 # In-memory thread-safe fallback repository store (Active ONLY in DATA_STORE_MODE=memory)
 _lock = threading.RLock()
-_local_store: Dict[str, Dict[str, Any]] = {
+_local_store: dict[str, dict[str, Any]] = {
     "users": {},
     "sessions": {},
     "workspaces": {},
@@ -39,21 +48,38 @@ _local_store: Dict[str, Dict[str, Any]] = {
 _indexes_ensured = False
 
 
+# (collection, keys, options, enforces_security_invariant)
+# The two unique indexes marked True are the only thing stopping duplicate account
+# registration and refresh-token replay, so a failure to create them must not be
+# swallowed: the platform would come up silently unprotected.
+_INDEX_SPECS: list[tuple[str, Any, dict[str, Any], bool]] = [
+    ("users", "email", {"unique": True}, True),
+    ("user_sessions", "jti", {"unique": True}, True),
+    ("datasets", [("id", 1), ("workspace_id", 1)], {}, False),
+    ("daily_aggregates", [("dataset_id", 1), ("date", 1)], {"unique": True}, False),
+    ("hourly_aggregates", [("dataset_id", 1), ("hour", 1)], {"unique": True}, False),
+    ("monthly_aggregates", [("dataset_id", 1), ("year", 1), ("month", 1)], {"unique": True}, False),
+    ("peak_events", [("dataset_id", 1), ("timestamp", -1)], {}, False),
+    ("stream_windows", [("dataset_id", 1), ("window_end", -1)], {}, False),
+    ("user_sessions", [("user_id", 1), ("is_revoked", 1)], {}, False),
+    ("audit_logs", [("workspace_id", 1), ("timestamp", -1)], {}, False),
+]
+
+
 def ensure_indexes(db) -> None:
-    """Create essential compound and unique indexes for high-performance query execution."""
-    try:
-        db.users.create_index("email", unique=True)
-        db.datasets.create_index([("id", 1), ("workspace_id", 1)])
-        db.daily_aggregates.create_index([("dataset_id", 1), ("date", 1)], unique=True)
-        db.hourly_aggregates.create_index([("dataset_id", 1), ("hour", 1)], unique=True)
-        db.monthly_aggregates.create_index([("dataset_id", 1), ("year", 1), ("month", 1)], unique=True)
-        db.peak_events.create_index([("dataset_id", 1), ("timestamp", -1)])
-        db.stream_windows.create_index([("dataset_id", 1), ("window_end", -1)])
-        db.user_sessions.create_index("jti", unique=True)
-        db.user_sessions.create_index([("user_id", 1), ("is_revoked", 1)])
-        db.audit_logs.create_index([("workspace_id", 1), ("timestamp", -1)])
-    except Exception:
-        pass
+    """Create essential compound and unique indexes for high-performance query execution.
+
+    Performance indexes are best-effort and only logged on failure. Indexes that back a
+    security invariant are re-raised so the caller fails closed rather than serving
+    traffic without uniqueness enforcement.
+    """
+    for collection, keys, options, enforces_security_invariant in _INDEX_SPECS:
+        try:
+            db[collection].create_index(keys, **options)
+        except Exception:
+            logger.exception("Failed to create index on %s (keys=%s)", collection, keys)
+            if enforces_security_invariant:
+                raise
 
 
 def _get_active_db():
@@ -83,7 +109,7 @@ class Repository:
     # Users
     # -------------------------------------------------------------------------
     @staticmethod
-    def save_user(user_doc: Dict[str, Any]) -> None:
+    def save_user(user_doc: dict[str, Any]) -> None:
         db = _get_active_db()
         if db is not None:
             db.users.replace_one({"email": user_doc["email"]}, user_doc, upsert=True)
@@ -91,7 +117,7 @@ class Repository:
             _local_store["users"][user_doc["email"]] = user_doc
 
     @staticmethod
-    def get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
+    def get_user_by_email(email: str) -> dict[str, Any] | None:
         db = _get_active_db()
         if db is not None:
             doc = db.users.find_one({"email": email})
@@ -102,7 +128,7 @@ class Repository:
             return _local_store["users"].get(email)
 
     @staticmethod
-    def get_user_by_id(user_id: str) -> Optional[Dict[str, Any]]:
+    def get_user_by_id(user_id: str) -> dict[str, Any] | None:
         db = _get_active_db()
         if db is not None:
             doc = db.users.find_one({"id": user_id})
@@ -116,7 +142,7 @@ class Repository:
         return None
 
     @staticmethod
-    def list_users(workspace_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    def list_users(workspace_id: str | None = None) -> list[dict[str, Any]]:
         db = _get_active_db()
         if db is not None:
             query = {"workspace_id": workspace_id} if workspace_id else {}
@@ -136,7 +162,7 @@ class Repository:
     # Refresh Token Sessions
     # -------------------------------------------------------------------------
     @staticmethod
-    def save_session(session_doc: Dict[str, Any]) -> None:
+    def save_session(session_doc: dict[str, Any]) -> None:
         db = _get_active_db()
         if db is not None:
             db.user_sessions.replace_one({"jti": session_doc["jti"]}, session_doc, upsert=True)
@@ -144,7 +170,7 @@ class Repository:
             _local_store["sessions"][session_doc["jti"]] = session_doc
 
     @staticmethod
-    def get_session(jti: str) -> Optional[Dict[str, Any]]:
+    def get_session(jti: str) -> dict[str, Any] | None:
         db = _get_active_db()
         if db is not None:
             doc = db.user_sessions.find_one({"jti": jti})
@@ -195,7 +221,7 @@ class Repository:
             _local_store["datasets"][dataset.id] = doc
 
     @staticmethod
-    def get_dataset(dataset_id: str) -> Optional[DatasetMetadata]:
+    def get_dataset(dataset_id: str) -> DatasetMetadata | None:
         db = _get_active_db()
         if db is not None:
             doc = db.datasets.find_one({"id": dataset_id})
@@ -207,7 +233,7 @@ class Repository:
             return DatasetMetadata(**doc) if doc else None
 
     @staticmethod
-    def list_datasets(workspace_id: Optional[str] = None) -> List[DatasetMetadata]:
+    def list_datasets(workspace_id: str | None = None) -> list[DatasetMetadata]:
         db = _get_active_db()
         if db is not None:
             query = {"workspace_id": workspace_id} if workspace_id else {}
@@ -247,7 +273,7 @@ class Repository:
             _local_store["analytics_jobs"][job.id] = doc
 
     @staticmethod
-    def get_job(job_id: str) -> Optional[AnalyticsJobResponse]:
+    def get_job(job_id: str) -> AnalyticsJobResponse | None:
         db = _get_active_db()
         if db is not None:
             doc = db.analytics_jobs.find_one({"id": job_id})
@@ -259,7 +285,7 @@ class Repository:
             return AnalyticsJobResponse(**doc) if doc else None
 
     @staticmethod
-    def list_jobs(dataset_id: Optional[str] = None, workspace_id: Optional[str] = None) -> List[AnalyticsJobResponse]:
+    def list_jobs(dataset_id: str | None = None, workspace_id: str | None = None) -> list[AnalyticsJobResponse]:
         db = _get_active_db()
         if db is not None:
             query = {}
@@ -285,7 +311,7 @@ class Repository:
     # Analytical Aggregates Persistence
     # -------------------------------------------------------------------------
     @staticmethod
-    def save_daily_aggregates(aggregates: List[DailyAggregate]) -> None:
+    def save_daily_aggregates(aggregates: list[DailyAggregate]) -> None:
         if not aggregates:
             return
         db = _get_active_db()
@@ -302,7 +328,7 @@ class Repository:
                 _local_store["daily_aggregates"][key] = d
 
     @staticmethod
-    def get_daily_aggregates(dataset_id: str, limit: Optional[int] = None) -> List[DailyAggregate]:
+    def get_daily_aggregates(dataset_id: str, limit: int | None = None) -> list[DailyAggregate]:
         db = _get_active_db()
         if db is not None:
             cursor = db.daily_aggregates.find({"dataset_id": dataset_id}).sort("date", 1)
@@ -321,7 +347,7 @@ class Repository:
             return [DailyAggregate(**d) for d in matches]
 
     @staticmethod
-    def save_hourly_aggregates(aggregates: List[HourlyAggregate]) -> None:
+    def save_hourly_aggregates(aggregates: list[HourlyAggregate]) -> None:
         if not aggregates:
             return
         db = _get_active_db()
@@ -338,7 +364,7 @@ class Repository:
                 _local_store["hourly_aggregates"][key] = d
 
     @staticmethod
-    def get_hourly_aggregates(dataset_id: str) -> List[HourlyAggregate]:
+    def get_hourly_aggregates(dataset_id: str) -> list[HourlyAggregate]:
         db = _get_active_db()
         if db is not None:
             cursor = db.hourly_aggregates.find({"dataset_id": dataset_id}).sort("hour", 1)
@@ -353,7 +379,7 @@ class Repository:
             return [HourlyAggregate(**d) for d in matches]
 
     @staticmethod
-    def save_monthly_aggregates(aggregates: List[MonthlyAggregate]) -> None:
+    def save_monthly_aggregates(aggregates: list[MonthlyAggregate]) -> None:
         if not aggregates:
             return
         db = _get_active_db()
@@ -374,7 +400,7 @@ class Repository:
                 _local_store["monthly_aggregates"][key] = d
 
     @staticmethod
-    def get_monthly_aggregates(dataset_id: str) -> List[MonthlyAggregate]:
+    def get_monthly_aggregates(dataset_id: str) -> list[MonthlyAggregate]:
         db = _get_active_db()
         if db is not None:
             cursor = db.monthly_aggregates.find({"dataset_id": dataset_id}).sort([("year", 1), ("month", 1)])
@@ -389,7 +415,7 @@ class Repository:
             return [MonthlyAggregate(**d) for d in matches]
 
     @staticmethod
-    def save_peak_events(events: List[PeakEvent]) -> None:
+    def save_peak_events(events: list[PeakEvent]) -> None:
         if not events:
             return
         db = _get_active_db()
@@ -410,7 +436,7 @@ class Repository:
                 _local_store["peak_events"][key] = d
 
     @staticmethod
-    def get_peak_events(dataset_id: str, limit: int = 50) -> List[PeakEvent]:
+    def get_peak_events(dataset_id: str, limit: int = 50) -> list[PeakEvent]:
         db = _get_active_db()
         if db is not None:
             cursor = db.peak_events.find({"dataset_id": dataset_id}).sort("power", -1).limit(limit)
@@ -442,7 +468,7 @@ class Repository:
             _local_store["stream_windows"][key] = doc
 
     @staticmethod
-    def get_recent_stream_windows(dataset_id: str, limit: int = 30) -> List[StreamWindow]:
+    def get_recent_stream_windows(dataset_id: str, limit: int = 30) -> list[StreamWindow]:
         db = _get_active_db()
         if db is not None:
             cursor = db.stream_windows.find({"dataset_id": dataset_id}).sort("window_start", -1).limit(limit)
@@ -469,7 +495,7 @@ class Repository:
             _local_store["audit_logs"][entry.id] = doc
 
     @staticmethod
-    def list_audit_logs(limit: int = 100, workspace_id: Optional[str] = None) -> List[AuditLogEntry]:
+    def list_audit_logs(limit: int = 100, workspace_id: str | None = None) -> list[AuditLogEntry]:
         db = _get_active_db()
         query = {"workspace_id": workspace_id} if workspace_id else {}
         if db is not None:
@@ -482,7 +508,7 @@ class Repository:
         with _lock:
             logs = list(_local_store["audit_logs"].values())
             if workspace_id:
-                logs = [l for l in logs if l.get("workspace_id") == workspace_id]
+                logs = [entry for entry in logs if entry.get("workspace_id") == workspace_id]
             logs.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
             return [AuditLogEntry(**d) for d in logs[:limit]]
 
@@ -496,7 +522,7 @@ class Repository:
             _local_store["security_events"][entry.id] = doc
 
     @staticmethod
-    def list_security_events(limit: int = 100) -> List[SecurityEventEntry]:
+    def list_security_events(limit: int = 100) -> list[SecurityEventEntry]:
         db = _get_active_db()
         if db is not None:
             cursor = db.security_events.find().sort("timestamp", -1).limit(limit)

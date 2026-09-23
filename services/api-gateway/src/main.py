@@ -4,25 +4,22 @@ Provides secure ingress routing, JWT token verification, sliding-window rate lim
 strict security headers, request correlation tracking, and normalized error responses.
 """
 
-from contextlib import asynccontextmanager
-from datetime import datetime, timezone
 import os
 import sys
 import time
 import uuid
-from typing import Dict, List, Optional
+from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request, Response, status
+import httpx
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
-import httpx
-from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..")))
 
-from shared.errors import PlatformException, RateLimitException
+from shared.errors import PlatformException
 from shared.logger import get_logger
-from shared.security import decode_token
 
 logger = get_logger("api-gateway")
 
@@ -42,12 +39,12 @@ SERVICE_ROUTING = {
 PREPROCESSING_URL = os.getenv("PREPROCESSING_SERVICE_URL", "http://localhost:8003")
 
 # Simple in-memory sliding window rate limiter
-RATE_LIMIT_BUCKET: Dict[str, List[float]] = {}
+RATE_LIMIT_BUCKET: dict[str, list[float]] = {}
 RATE_LIMIT_WINDOW_SEC = 60
 MAX_REQUESTS_PER_MIN = int(os.getenv("RATE_LIMIT_MAX_RPM", "150"))
 MAX_AUTH_REQUESTS_PER_MIN = 25
 
-http_client: Optional[httpx.AsyncClient] = None
+http_client: httpx.AsyncClient | None = None
 
 
 @asynccontextmanager
@@ -159,7 +156,7 @@ async def reverse_proxy(path: str, request: Request):
     # Determine target microservice
     target_base = None
     if "/preprocess" in full_path or "/quality" in full_path:
-        target_base = PREPROCESSING_SERVICE_URL
+        target_base = PREPROCESSING_URL
     else:
         for prefix, s_url in SERVICE_ROUTING.items():
             if full_path.startswith(prefix):
@@ -223,7 +220,7 @@ async def reverse_proxy(path: str, request: Request):
             content={
                 "error": {
                     "code": "GATEWAY_ERROR",
-                    "message": f"Gateway proxy failure: {str(e)}",
+                    "message": f"Gateway proxy failure: {e!s}",
                     "request_id": corr_id,
                     "details": [],
                 }

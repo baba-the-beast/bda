@@ -4,15 +4,14 @@ Mounts all microservice routers into a single cohesive development server on por
 for instantaneous local evaluation, testing, and UI integration without needing 8 background daemons.
 """
 
-from contextlib import asynccontextmanager
 import importlib.util
 import os
 import sys
+from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
-from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, BASE_DIR)
@@ -27,14 +26,30 @@ from shared.errors import PlatformException
 
 
 def load_service_app(service_folder: str):
+    """Load a microservice's FastAPI module by path, at most once per process.
+
+    Service modules register Prometheus collectors at import time, so executing one
+    twice raises DuplicateTimeseries. Caching keeps repeat calls cheap, and clearing a
+    failed module keeps the real ImportError visible instead of a misleading metrics
+    collision on the next attempt.
+    """
+    module_name = f"service_{service_folder.replace('-', '_')}"
+    cached = sys.modules.get(module_name)
+    if cached is not None:
+        return cached
+
     svc_dir = os.path.join(BASE_DIR, "services", service_folder)
     if svc_dir not in sys.path:
         sys.path.insert(0, svc_dir)
     main_path = os.path.join(svc_dir, "src", "main.py")
-    spec = importlib.util.spec_from_file_location(f"service_{service_folder.replace('-', '_')}", main_path)
+    spec = importlib.util.spec_from_file_location(module_name, main_path)
     module = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = module
-    spec.loader.exec_module(module)
+    sys.modules[module_name] = module
+    try:
+        spec.loader.exec_module(module)
+    except BaseException:
+        sys.modules.pop(module_name, None)
+        raise
     return module
 
 
@@ -89,8 +104,8 @@ def health():
     return {"status": "UP", "mode": "development-unified-gateway"}
 
 
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 frontend_dist = os.path.join(BASE_DIR, "frontend", "dist")
 if os.path.exists(frontend_dist):
