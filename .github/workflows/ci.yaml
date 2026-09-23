@@ -66,7 +66,10 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # 22, not 20: jsdom's undici calls webidl.util.markAsUncloneable,
+          # which Node 20 does not have, so every Vitest worker fails to start.
+          # Vite 6 and Vitest 5 also want 20.19+/22.12+.
+          node-version: 22
           cache: "npm"
           cache-dependency-path: frontend/package-lock.json
 
