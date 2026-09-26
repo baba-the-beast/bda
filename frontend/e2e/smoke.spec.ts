@@ -74,6 +74,41 @@ test.describe('sign-in', () => {
   });
 });
 
+test.describe('landing backdrop', () => {
+  test.beforeEach(async ({ page }) => {
+    await stubApi(page);
+  });
+
+  /** A hash of the canvas pixels, to tell frames apart. */
+  const snapshot = (page: import('@playwright/test').Page) =>
+    page.getByTestId('code-rain').evaluate((canvas: HTMLCanvasElement) => {
+      const data = canvas.toDataURL();
+      let hash = 0;
+      for (let i = 0; i < data.length; i++) hash = (hash * 31 + data.charCodeAt(i)) | 0;
+      return { hash, length: data.length };
+    });
+
+  test('is decorative, drawn, and animates', async ({ page }) => {
+    await page.goto('/sign-in');
+    const canvas = page.getByTestId('code-rain');
+    await expect(canvas).toHaveAttribute('aria-hidden', 'true');
+
+    await expect.poll(async () => (await snapshot(page)).length).toBeGreaterThan(10_000);
+    const first = await snapshot(page);
+    await expect.poll(async () => (await snapshot(page)).hash).not.toBe(first.hash);
+  });
+
+  test('holds a single still frame under reduced motion', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/sign-in');
+
+    await expect.poll(async () => (await snapshot(page)).length).toBeGreaterThan(10_000);
+    const first = await snapshot(page);
+    await page.waitForTimeout(600);
+    expect((await snapshot(page)).hash).toBe(first.hash);
+  });
+});
+
 test.describe('routing', () => {
   test('redirects an anonymous visitor to sign-in', async ({ page }) => {
     await stubApi(page);
