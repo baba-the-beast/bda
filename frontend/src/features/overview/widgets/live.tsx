@@ -1,4 +1,3 @@
-import { useQuery } from '@tanstack/react-query';
 import { Radio } from 'lucide-react';
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
@@ -7,31 +6,13 @@ import { Sparkline } from '../../../components/charts/Sparkline';
 import { Button } from '../../../components/ui/Button';
 import { EmptyState } from '../../../components/ui/States';
 import { StatusPill, type Status } from '../../../components/ui/Status';
-import { stream } from '../../../lib/api/endpoints';
 import { formatValue } from '../../../lib/format';
 import { useTelemetryStream, type StreamStatus } from '../../../lib/stream/useTelemetryStream';
 import { PanelState } from '../../shared/PanelState';
+import { useReplayStatus } from '../../stream/replayStatus';
 
 import type { WidgetProps } from './types';
 import { WidgetCard } from './WidgetCard';
-
-/** The fields of /stream/status this card relies on. The endpoint is untyped (BR-5). */
-export interface ReplayStatus {
-  running: boolean;
-  paused: boolean;
-  datasetId: string | null;
-}
-
-export function parseReplayStatus(payload: unknown): ReplayStatus {
-  const raw = (
-    typeof payload === 'object' && payload !== null && !Array.isArray(payload) ? payload : {}
-  ) as Record<string, unknown>;
-  return {
-    running: raw.is_running === true,
-    paused: raw.is_paused === true,
-    datasetId: typeof raw.dataset_id === 'string' && raw.dataset_id !== '' ? raw.dataset_id : null,
-  };
-}
 
 const CONNECTION: Record<StreamStatus, { status: Status; label: string }> = {
   idle: { status: 'neutral', label: 'Not connected' },
@@ -53,11 +34,7 @@ const TRAIL = 120;
  * first event it says it is waiting rather than showing a placeholder reading.
  */
 export function LiveWidget({ context }: WidgetProps) {
-  const status = useQuery({
-    queryKey: ['stream', 'status'] as const,
-    queryFn: async () => parseReplayStatus(await stream.status()),
-    refetchInterval: 10_000,
-  });
+  const status = useReplayStatus();
   const replay = status.data;
   const live = replay?.running === true && !replay.paused;
   const telemetry = useTelemetryStream(live);

@@ -331,19 +331,21 @@ class Repository:
     def get_daily_aggregates(dataset_id: str, limit: int | None = None) -> list[DailyAggregate]:
         db = _get_active_db()
         if db is not None:
-            cursor = db.daily_aggregates.find({"dataset_id": dataset_id}).sort("date", 1)
+            # A limit keeps the most recent days: newest first to cut, then
+            # returned oldest first like the unlimited read.
+            cursor = db.daily_aggregates.find({"dataset_id": dataset_id}).sort("date", -1)
             if limit is not None:
                 cursor = cursor.limit(limit)
             results = []
             for doc in cursor:
                 doc.pop("_id", None)
                 results.append(DailyAggregate(**doc))
-            return results
+            return list(reversed(results))
         with _lock:
             matches = [v for v in _local_store["daily_aggregates"].values() if v.get("dataset_id") == dataset_id]
             matches.sort(key=lambda x: x.get("date", ""))
             if limit is not None:
-                matches = matches[:limit]
+                matches = matches[-limit:]
             return [DailyAggregate(**d) for d in matches]
 
     @staticmethod
@@ -449,6 +451,14 @@ class Repository:
             matches = [v for v in _local_store["peak_events"].values() if v.get("dataset_id") == dataset_id]
             matches.sort(key=lambda x: x.get("power", 0.0), reverse=True)
             return [PeakEvent(**d) for d in matches[:limit]]
+
+    @staticmethod
+    def count_peak_events(dataset_id: str) -> int:
+        db = _get_active_db()
+        if db is not None:
+            return db.peak_events.count_documents({"dataset_id": dataset_id})
+        with _lock:
+            return sum(1 for v in _local_store["peak_events"].values() if v.get("dataset_id") == dataset_id)
 
     # -------------------------------------------------------------------------
     # Stream Windows

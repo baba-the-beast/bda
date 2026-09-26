@@ -173,6 +173,7 @@ def get_overview_summary(
     max_peak_power = 0.0
     active_jobs = 0
     days_count = 0
+    peak_event_count = 0
 
     if target_ds_id:
         ds = Repository.get_dataset(target_ds_id)
@@ -189,6 +190,7 @@ def get_overview_summary(
                 sum(d.average_power * d.reading_count for d in daily) / (total_readings or 1), 3
             )
             max_peak_power = round(max(d.maximum_power for d in daily), 3)
+        peak_event_count = Repository.count_peak_events(target_ds_id)
 
     jobs = Repository.list_jobs(dataset_id=target_ds_id)
     active_jobs = len([j for j in jobs if j.status in (JobStatus.RUNNING, JobStatus.QUEUED)])
@@ -203,6 +205,7 @@ def get_overview_summary(
         "active_jobs_count": active_jobs,
         "total_datasets": len(datasets),
         "days_aggregated": days_count,
+        "peak_event_count": peak_event_count,
     }
 
 

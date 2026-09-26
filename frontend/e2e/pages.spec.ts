@@ -99,6 +99,27 @@ test.describe('stream', () => {
     await expect(page.getByText('238.6')).toHaveCount(0);
   });
 
+  test('controls a replay that was already running when the page opened', async ({ page }) => {
+    await signIn(page);
+    let status = { is_running: true, is_paused: false, dataset_id: 'ds_e2e00000001' };
+    await page.route('**/api/v1/stream/status', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(status) }),
+    );
+    await page.route('**/api/v1/stream/pause', (route) => {
+      status = { ...status, is_paused: true };
+      return route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
+    });
+    await page.goto('/stream');
+
+    // Started elsewhere: this page never pressed Start, and can still pause or stop it.
+    await expect(page.getByRole('button', { name: 'Pause' })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Stop' })).toBeEnabled();
+
+    await page.getByRole('button', { name: 'Pause' }).click();
+    await expect(page.getByRole('button', { name: 'Resume' })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Stop' })).toBeEnabled();
+  });
+
   test('states that window means come from the server', async ({ page }) => {
     await signIn(page);
     await page.goto('/stream');

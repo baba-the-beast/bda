@@ -17,6 +17,8 @@ export interface OverviewSummary {
   activeJobs: number | null;
   totalDatasets: number | null;
   daysAggregated: number | null;
+  /** Every peak event on record, not the page of them /analytics/peak returns. */
+  peakEventCount: number | null;
 }
 
 const numberOrNull = (value: unknown): number | null =>
@@ -40,6 +42,7 @@ export function parseOverview(payload: unknown): OverviewSummary {
     activeJobs: numberOrNull(raw.active_jobs_count),
     totalDatasets: numberOrNull(raw.total_datasets),
     daysAggregated: numberOrNull(raw.days_aggregated),
+    peakEventCount: numberOrNull(raw.peak_event_count),
   };
 }
 

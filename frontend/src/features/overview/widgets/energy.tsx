@@ -15,6 +15,11 @@ import { WidgetCard } from './WidgetCard';
 
 const fetchedAt = (updatedAt: number) => (updatedAt === 0 ? null : new Date(updatedAt));
 
+/**
+ * The most recent days of the daily aggregate: the service caps the read and
+ * keeps the latest days, so this is a recent window, not the whole history.
+ * Whole-dataset figures come from /overview and /submeters instead.
+ */
 export function useDailyAggregates(datasetId: string | undefined) {
   return useQuery({
     queryKey: ['analytics', 'daily', datasetId] as const,
@@ -104,11 +109,11 @@ export function ConsumptionWidget({ datasetId, context }: WidgetProps) {
               <Sparkline
                 className="h-[2rem]"
                 values={series}
-                label={`Daily consumption over ${String(series.length)} recorded days, most recent ${formatValue(series.at(-1), 'kWh')}.`}
+                label={`Daily consumption over the last ${String(series.length)} recorded days, most recent ${formatValue(series.at(-1), 'kWh')}.`}
               />
               <p className="mt-1 text-2xs text-text-subtle">
                 {trend === null
-                  ? `${String(series.length)} days, one point each`
+                  ? `last ${String(series.length)} days, one point each`
                   : 'change: last 7 days against the 7 before'}
               </p>
             </div>

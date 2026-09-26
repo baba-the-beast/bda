@@ -11,6 +11,7 @@ from shared.models import (
     DatasetStatus,
     JobStatus,
     JobType,
+    PeakEvent,
 )
 from shared.repository import Repository
 
@@ -92,3 +93,56 @@ def test_aggregates_storage():
     assert len(results) == 1
     assert results[0].date == "2026-01-01"
     assert results[0].total_consumption_kwh == 15.5
+
+
+def _day(ds_id: str, date: str) -> DailyAggregate:
+    return DailyAggregate(
+        dataset_id=ds_id,
+        date=date,
+        total_consumption_kwh=10.0,
+        average_power=1.0,
+        minimum_power=0.1,
+        maximum_power=3.0,
+        sub_metering_1_total=1.0,
+        sub_metering_2_total=2.0,
+        sub_metering_3_total=3.0,
+        reading_count=1440,
+    )
+
+
+def test_daily_limit_keeps_the_most_recent_days_in_date_order():
+    ds_id = f"ds_lim_{uuid.uuid4().hex[:8]}"
+    dates = [f"2026-01-{d:02d}" for d in range(1, 11)]
+    # Saved out of order so the result's order comes from the read, not the write.
+    Repository.save_daily_aggregates([_day(ds_id, d) for d in reversed(dates)])
+
+    limited = Repository.get_daily_aggregates(ds_id, limit=3)
+    assert [d.date for d in limited] == dates[-3:]
+
+    everything = Repository.get_daily_aggregates(ds_id)
+    assert [d.date for d in everything] == dates
+
+
+def test_peak_event_count_is_the_total_not_the_page():
+    ds_id = f"ds_peak_{uuid.uuid4().hex[:8]}"
+    events = [
+        PeakEvent(
+            dataset_id=ds_id,
+            timestamp=f"2026-01-01T00:{m:02d}:00",
+            date="2026-01-01",
+            hour=0,
+            power=5.0 + m / 100,
+            voltage=235.0,
+            intensity=22.0,
+            sub_metering_1=0.0,
+            sub_metering_2=0.0,
+            sub_metering_3=17.0,
+            threshold_applied=4.0,
+        )
+        for m in range(60)
+    ]
+    Repository.save_peak_events(events)
+
+    assert len(Repository.get_peak_events(ds_id)) == 50
+    assert Repository.count_peak_events(ds_id) == 60
+    assert Repository.count_peak_events("no_such_dataset") == 0

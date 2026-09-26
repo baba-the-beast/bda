@@ -7,8 +7,8 @@ import { analytics } from '../../../lib/api/endpoints';
 import { formatDatasetDate, formatDatasetTime, formatValue } from '../../../lib/format';
 import { PanelState } from '../../shared/PanelState';
 import { useVoltageBands } from '../../voltage/voltageBands';
+import { useOverview } from '../overview';
 
-import { useDailyAggregates } from './energy';
 import type { WidgetProps } from './types';
 import { WidgetCard } from './WidgetCard';
 
@@ -16,10 +16,38 @@ const fetchedAt = (updatedAt: number) => (updatedAt === 0 ? null : new Date(upda
 
 /** What each sub-meter circuit serves in this household (docs/DATA_DICTIONARY.md). */
 const SUBMETERS = [
-  { key: 'sub_metering_1_total', name: 'Kitchen', detail: 'dishwasher, oven, microwave' },
-  { key: 'sub_metering_2_total', name: 'Laundry', detail: 'washer, dryer, fridge, a light' },
-  { key: 'sub_metering_3_total', name: 'Water heater & AC', detail: 'climate systems' },
+  { key: 'kitchen_kwh', name: 'Kitchen', detail: 'dishwasher, oven, microwave' },
+  { key: 'laundry_kwh', name: 'Laundry', detail: 'washer, dryer, fridge, a light' },
+  { key: 'climate_kwh', name: 'Water heater & AC', detail: 'climate systems' },
 ] as const;
+
+type SubmeterKey = (typeof SUBMETERS)[number]['key'];
+
+export interface SubmeterTotals {
+  kwh: Record<SubmeterKey, number>;
+  daysAggregated: number;
+}
+
+/**
+ * Narrows /analytics/submeters, which sums every recorded day on the server.
+ * It replaces summing the daily aggregate here, which the service caps to the
+ * most recent days. A missing or malformed figure reads as zero days, so the
+ * card shows its empty state instead of a partial total.
+ */
+export function parseSubmeters(payload: unknown): SubmeterTotals {
+  const raw = (
+    typeof payload === 'object' && payload !== null && !Array.isArray(payload) ? payload : {}
+  ) as Record<string, unknown>;
+  const num = (value: unknown) =>
+    typeof value === 'number' && Number.isFinite(value) ? value : null;
+  const kwh = { kitchen_kwh: 0, laundry_kwh: 0, climate_kwh: 0 };
+  for (const { key } of SUBMETERS) {
+    const value = num(raw[key]);
+    if (value === null) return { kwh, daysAggregated: 0 };
+    kwh[key] = value;
+  }
+  return { kwh, daysAggregated: num(raw.days_aggregated) ?? 0 };
+}
 
 /**
  * Energy through each sub-metered circuit, summed over every recorded day.
@@ -29,16 +57,16 @@ const SUBMETERS = [
  * letting three bars that sum to 100% imply otherwise.
  */
 export function SubmeterWidget({ datasetId, context }: WidgetProps) {
-  const daily = useDailyAggregates(datasetId);
+  const submeters = useQuery({
+    queryKey: ['analytics', 'submeters', datasetId] as const,
+    queryFn: async () => parseSubmeters(await analytics.submeters(datasetId ?? '')),
+    enabled: datasetId !== undefined,
+  });
 
-  const totals = useMemo(() => {
-    const rows = daily.data ?? [];
-    // The daily totals are in watt-hours; the card reads in kWh.
-    return SUBMETERS.map((meter) => ({
-      ...meter,
-      kwh: rows.reduce((sum, row) => sum + row[meter.key], 0) / 1000,
-    }));
-  }, [daily.data]);
+  const totals = useMemo(
+    () => SUBMETERS.map((meter) => ({ ...meter, kwh: submeters.data?.kwh[meter.key] ?? 0 })),
+    [submeters.data],
+  );
   const metered = totals.reduce((sum, meter) => sum + meter.kwh, 0);
   const roomy = context.span.h >= 2 || context.size !== 'sm';
 
@@ -46,14 +74,14 @@ export function SubmeterWidget({ datasetId, context }: WidgetProps) {
     <WidgetCard
       title="Sub-meter breakdown"
       source="the daily aggregate"
-      asOf={fetchedAt(daily.dataUpdatedAt)}
+      asOf={fetchedAt(submeters.dataUpdatedAt)}
       context={context}
     >
       <PanelState
         compact
-        isLoading={daily.isLoading}
-        error={daily.error}
-        isEmpty={(daily.data ?? []).length === 0 || metered === 0}
+        isLoading={submeters.isLoading}
+        error={submeters.error}
+        isEmpty={(submeters.data?.daysAggregated ?? 0) === 0 || metered === 0}
         empty={
           <EmptyState
             className="h-full justify-center gap-1.5 py-0"
@@ -61,7 +89,7 @@ export function SubmeterWidget({ datasetId, context }: WidgetProps) {
             description="They come from the daily MapReduce job."
           />
         }
-        onRetry={() => void daily.refetch()}
+        onRetry={() => void submeters.refetch()}
       >
         <div className="flex h-full flex-col justify-between gap-3">
           <ul className="flex flex-col gap-3">
@@ -99,6 +127,9 @@ export function SubmeterWidget({ datasetId, context }: WidgetProps) {
   );
 }
 
+/** The service's default page for /analytics/peak. */
+const PEAK_PAGE_SIZE = 50;
+
 /** Minutes where draw crossed the peak threshold, highest first. */
 export function PeakWidget({ datasetId, context }: WidgetProps) {
   const peaks = useQuery({
@@ -112,6 +143,13 @@ export function PeakWidget({ datasetId, context }: WidgetProps) {
     [peaks.data],
   );
   const top = ranked[0];
+  // /analytics/peak returns a page of the highest events, so its length is not
+  // the number of events. The count comes from /overview.
+  const overview = useOverview(datasetId);
+  const counted = overview.data?.peakEventCount ?? null;
+  const count = counted ?? ranked.length;
+  // Without the count, a full page may be a truncated one.
+  const atLeast = counted === null && ranked.length >= PEAK_PAGE_SIZE;
   const listLength = context.span.h >= 2 ? 6 : 0;
 
   return (
@@ -140,10 +178,11 @@ export function PeakWidget({ datasetId, context }: WidgetProps) {
             <div>
               <p className="flex items-baseline gap-1.5">
                 <span data-numeric className="text-2xl font-medium leading-none text-text">
-                  {ranked.length.toLocaleString()}
+                  {count.toLocaleString()}
                 </span>
                 <span className="text-sm text-text-muted">
-                  {ranked.length === 1 ? 'event' : 'events'}
+                  {atLeast && 'or more '}
+                  {count === 1 ? 'event' : 'events'}
                 </span>
               </p>
               <p className="mt-1 text-2xs text-text-subtle">

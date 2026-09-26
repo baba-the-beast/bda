@@ -122,6 +122,10 @@ export const analytics = {
 
   peak: (datasetId: string): Promise<PeakEvent[]> =>
     apiRequest<PeakEvent[]>(`/analytics/peak${query({ dataset_id: datasetId })}`),
+
+  /** Sub-meter totals over every recorded day. Untyped upstream (BR-5); narrow at the caller. */
+  submeters: (datasetId: string): Promise<unknown> =>
+    apiRequest<unknown>(`/analytics/submeters${query({ dataset_id: datasetId })}`),
 };
 
 export const hive = {

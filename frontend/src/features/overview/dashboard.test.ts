@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
 import { computeLayout } from '../../components/ui/widget-grid-layout';
+import { parseReplayStatus } from '../stream/replayStatus';
 
 import { DEFAULT_LAYOUT, layoutStorageKey, reconcileLayout } from './dashboardLayout';
+import { parseOverview } from './overview';
+import { parseSubmeters } from './widgets/breakdown';
 import { weeklyTrend } from './widgets/energy';
-import { parseReplayStatus } from './widgets/live';
 
 describe('reconcileLayout', () => {
   it('returns the default board when nothing is stored', () => {
@@ -76,5 +78,38 @@ describe('parseReplayStatus', () => {
     expect(parseReplayStatus([])).toEqual({ running: false, paused: false, datasetId: null });
     expect(parseReplayStatus(null).running).toBe(false);
     expect(parseReplayStatus({ is_running: 'yes' }).running).toBe(false);
+  });
+});
+
+describe('parseSubmeters', () => {
+  it('reads the whole-dataset totals', () => {
+    expect(
+      parseSubmeters({
+        kitchen_kwh: 1.5,
+        laundry_kwh: 2,
+        climate_kwh: 9.25,
+        days_aggregated: 1442,
+      }),
+    ).toEqual({
+      kwh: { kitchen_kwh: 1.5, laundry_kwh: 2, climate_kwh: 9.25 },
+      daysAggregated: 1442,
+    });
+  });
+
+  it('treats a missing or malformed figure as no data, not a partial total', () => {
+    expect(
+      parseSubmeters({ kitchen_kwh: 1, laundry_kwh: 2, days_aggregated: 3 }).daysAggregated,
+    ).toBe(0);
+    expect(
+      parseSubmeters({ kitchen_kwh: '1', laundry_kwh: 2, climate_kwh: 3 }).daysAggregated,
+    ).toBe(0);
+    expect(parseSubmeters([]).daysAggregated).toBe(0);
+  });
+});
+
+describe('parseOverview', () => {
+  it('carries the total peak event count, and null when the service omits it', () => {
+    expect(parseOverview({ peak_event_count: 137 }).peakEventCount).toBe(137);
+    expect(parseOverview({}).peakEventCount).toBeNull();
   });
 });

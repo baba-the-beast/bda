@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Pause, Play, Square } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 
 import { TimeSeriesChart } from '../../components/charts/TimeSeriesChart';
 import { Button } from '../../components/ui/Button';
@@ -21,6 +21,8 @@ import {
 import { useDatasetSelection } from '../datasets/useDatasetSelection';
 import { DatasetPicker } from '../shared/DatasetPicker';
 
+import { useReplayStatus } from './replayStatus';
+
 const CONNECTION: Record<StreamStatus, { status: Status; label: string }> = {
   idle: { status: 'neutral', label: 'Not connected' },
   connecting: { status: 'info', label: 'Connecting' },
@@ -29,6 +31,8 @@ const CONNECTION: Record<StreamStatus, { status: Status; label: string }> = {
   closed: { status: 'neutral', label: 'Closed' },
   error: { status: 'critical', label: 'Error' },
 };
+
+const DONE = { start: 'started', pause: 'paused', resume: 'resumed', stop: 'stopped' } as const;
 
 const READING_COLUMNS: Column<TelemetryReading>[] = [
   {
@@ -81,8 +85,14 @@ export function StreamPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const [subscribed, setSubscribed] = useState(false);
-  const telemetry = useTelemetryStream(subscribed);
+  // The replay may have been started before this page opened, in another tab,
+  // or from the overview, so the controls follow the service rather than the
+  // buttons pressed here. Paused still holds the connection open: resuming
+  // should not have to reconnect.
+  const replay = useReplayStatus();
+  const running = replay.data?.running === true;
+  const paused = running && replay.data?.paused === true;
+  const telemetry = useTelemetryStream(running);
 
   const control = useMutation({
     mutationFn: async (action: 'start' | 'pause' | 'resume' | 'stop') => {
@@ -97,8 +107,7 @@ export function StreamPage() {
           : stream.stop();
     },
     onSuccess: (_data, action) => {
-      setSubscribed(action !== 'stop');
-      toast({ title: `Stream ${action === 'stop' ? 'stopped' : action + 'ed'}`, status: 'ok' });
+      toast({ title: `Stream ${DONE[action]}`, status: 'ok' });
       void queryClient.invalidateQueries({ queryKey: ['stream'] });
     },
     onError: (error: Error) => {
@@ -155,20 +164,35 @@ export function StreamPage() {
               >
                 Start
               </Button>
-              <Button
-                size="sm"
-                disabled={!subscribed}
-                icon={<Pause aria-hidden className="size-3.5" />}
-                onClick={() => {
-                  control.mutate('pause');
-                }}
-              >
-                Pause
-              </Button>
+              {paused ? (
+                <Button
+                  size="sm"
+                  loading={control.isPending && control.variables === 'resume'}
+                  icon={<Play aria-hidden className="size-3.5" />}
+                  onClick={() => {
+                    control.mutate('resume');
+                  }}
+                >
+                  Resume
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  disabled={!running}
+                  loading={control.isPending && control.variables === 'pause'}
+                  icon={<Pause aria-hidden className="size-3.5" />}
+                  onClick={() => {
+                    control.mutate('pause');
+                  }}
+                >
+                  Pause
+                </Button>
+              )}
               <Button
                 size="sm"
                 variant="danger"
-                disabled={!subscribed}
+                disabled={!running}
+                loading={control.isPending && control.variables === 'stop'}
                 icon={<Square aria-hidden className="size-3.5" />}
                 onClick={() => {
                   control.mutate('stop');
@@ -254,7 +278,7 @@ export function StreamPage() {
         </PanelBody>
       </Panel>
 
-      {telemetry.readings.length === 0 && subscribed && (
+      {telemetry.readings.length === 0 && running && (
         <Panel>
           <PanelBody>
             <EmptyState

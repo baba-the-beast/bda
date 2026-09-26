@@ -80,6 +80,43 @@ test.describe('overview dashboard', () => {
     await expect(page.getByText(/Dataset health dropped at position/)).toBeAttached();
   });
 
+  test('a drag the browser cancels puts the card back and saves nothing', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await openBoard(page);
+    const before = await order(page);
+    // The pointer the drag runs on, so the cancel can name it.
+    await page.evaluate(() => {
+      window.addEventListener('pointerdown', (event) => {
+        (window as unknown as { lastPointerId: number }).lastPointerId = event.pointerId;
+      });
+    });
+
+    const source = page.getByRole('listitem', { name: 'Dataset health' });
+    const target = page.getByRole('listitem', { name: 'Total consumption' });
+    const from = await source.boundingBox();
+    const to = await target.boundingBox();
+    if (from === null || to === null) throw new Error('cards not laid out');
+
+    await page.mouse.move(from.x + from.width / 2, from.y + from.height - 12);
+    await page.mouse.down();
+    await page.mouse.move(from.x + from.width / 2 - 20, from.y + from.height - 30, { steps: 4 });
+    await page.mouse.move(to.x + 40, to.y + 40, { steps: 20 });
+    await page.waitForTimeout(400);
+    // Mid-drag, the order on screen has moved; the browser now takes the pointer.
+    await expect.poll(() => order(page)).not.toEqual(before);
+    await page.evaluate(() => {
+      const pointerId = (window as unknown as { lastPointerId: number }).lastPointerId;
+      window.dispatchEvent(new PointerEvent('pointercancel', { pointerId, bubbles: true }));
+    });
+    await page.mouse.up();
+
+    await expect.poll(() => order(page)).toEqual(before);
+    await expect(page.getByText(/Dataset health returned to position/)).toBeAttached();
+    await page.reload();
+    await expect(cards(page)).toHaveCount(8);
+    expect(await order(page)).toEqual(before);
+  });
+
   test('a click on a control inside a card is not a drag', async ({ page }) => {
     await openBoard(page);
     const before = await order(page);

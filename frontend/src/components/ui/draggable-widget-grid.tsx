@@ -425,6 +425,11 @@ export function DraggableWidgetGrid({
     const onUp = (event: PointerEvent) => {
       if (session.current?.pointerId === event.pointerId) endSession('drop');
     };
+    // The browser or OS took the pointer (a system gesture, a call, the page
+    // claiming the pan). Nobody let go, so nothing was dropped: put it back.
+    const onCancel = (event: PointerEvent) => {
+      if (session.current?.pointerId === event.pointerId) endSession('cancel');
+    };
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && session.current?.phase === 'dragging') {
         event.preventDefault();
@@ -440,13 +445,13 @@ export function DraggableWidgetGrid({
 
     window.addEventListener('pointermove', onMove, { passive: false });
     window.addEventListener('pointerup', onUp);
-    window.addEventListener('pointercancel', onUp);
+    window.addEventListener('pointercancel', onCancel);
     window.addEventListener('keydown', onKey);
     document.addEventListener('touchmove', onTouchMove, { passive: false });
     return () => {
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
-      window.removeEventListener('pointercancel', onUp);
+      window.removeEventListener('pointercancel', onCancel);
       window.removeEventListener('keydown', onKey);
       document.removeEventListener('touchmove', onTouchMove);
     };
