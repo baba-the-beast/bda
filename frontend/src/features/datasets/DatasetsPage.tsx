@@ -70,7 +70,7 @@ export function DatasetsPage() {
       cell: (row) => (
         <button
           type="button"
-          className="text-left text-accent underline-offset-2 hover:underline"
+          className="min-h-6 text-left text-accent underline-offset-2 hover:underline"
           onClick={() => {
             setSelectedId(row.id);
           }}

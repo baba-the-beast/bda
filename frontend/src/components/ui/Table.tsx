@@ -87,7 +87,9 @@ export function Table<Row>({
 
   return (
     <div
-      className={cn('overflow-auto', className)}
+      // relative: the sr-only caption and badge labels are absolutely positioned; without
+      // a containing block here they escape the scroller and widen the whole page.
+      className={cn('relative overflow-auto', className)}
       style={maxHeight !== undefined ? { maxHeight } : undefined}
     >
       <table className="w-full border-collapse text-xs">
@@ -123,7 +125,7 @@ export function Table<Row>({
                         toggleSort(column.id);
                       }}
                       className={cn(
-                        'inline-flex items-center gap-1 rounded-sm transition-colors duration-base hover:text-text',
+                        'inline-flex min-h-6 items-center gap-1 rounded-sm transition-colors duration-base hover:text-text',
                         column.align === 'right' && 'flex-row-reverse',
                       )}
                     >

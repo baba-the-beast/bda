@@ -116,7 +116,8 @@ export function TimeSeriesChart({
       xAxis: {
         type: 'time',
         ...axisCommon(chrome),
-        axisLabel: { ...axisCommon(chrome).axisLabel, formatter: axisLabel },
+        // On a phone-width card the time ticks outnumber the room for their labels.
+        axisLabel: { ...axisCommon(chrome).axisLabel, formatter: axisLabel, hideOverlap: true },
       },
       yAxis: {
         type: 'value',
@@ -166,7 +167,11 @@ export function TimeSeriesChart({
         sampling: 'lttb' as const,
         symbolSize: 8,
         emphasis: { focus: 'series' as const },
-        data: s.points.map((p) => [toMs(p.t), p.v] as [number, number | null]),
+        // Drawn in time order whatever order the rows came in: peak events,
+        // for one, arrive ranked by power, and a line joins points as given.
+        data: s.points
+          .map((p) => [toMs(p.t), p.v] as [number, number | null])
+          .sort(([a], [b]) => a - b),
         ...(index === 0 && threshold !== undefined
           ? {
               markLine: {

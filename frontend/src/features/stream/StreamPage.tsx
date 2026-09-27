@@ -150,7 +150,7 @@ export function StreamPage() {
           title="Replay control"
           source="the stream service"
           actions={
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <StatusPill status={connection.status}>{connection.label}</StatusPill>
               <Button
                 size="sm"

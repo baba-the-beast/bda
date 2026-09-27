@@ -69,7 +69,14 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
     <input
       ref={ref}
       aria-invalid={invalid === true ? true : undefined}
-      className={cn(CONTROL, 'h-9 px-2 text-sm', invalid === true && 'border-critical', className)}
+      className={cn(
+        CONTROL,
+        // Under 16px, iOS Safari zooms the page into a focused field; only a
+        // mouse-driven screen gets the denser size.
+        'h-9 px-2 text-[16px] [@media(pointer:fine)]:text-sm',
+        invalid === true && 'border-critical',
+        className,
+      )}
       {...props}
     />
   );

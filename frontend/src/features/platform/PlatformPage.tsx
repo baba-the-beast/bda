@@ -31,6 +31,10 @@ const renderValue = (value: unknown): string | null => {
   }
   if (typeof value === 'boolean') return value ? 'Yes' : 'No';
   if (typeof value === 'string') return value;
+  // Lists of paths or names read as a list, not as JSON with its quotes.
+  if (Array.isArray(value) && value.every((item) => typeof item !== 'object' || item === null)) {
+    return value.map(String).join(', ');
+  }
   return JSON.stringify(value);
 };
 

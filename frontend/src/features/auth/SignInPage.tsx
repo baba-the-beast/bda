@@ -109,7 +109,9 @@ export function SignInPage() {
           </dl>
         </section>
 
-        <div className="w-full rounded border border-border bg-surface p-6 shadow-lg">
+        {/* Stacked on a phone, the hero alone fills the first screen; the form
+            comes first there so signing in never starts with a scroll. */}
+        <div className="order-first w-full rounded border border-border bg-surface p-6 shadow-lg lg:order-none">
           <div className="mb-6">
             <h2 className="text-lg font-semibold text-text">Sign in</h2>
             <p className="text-xs text-text-muted">Use your workspace account.</p>

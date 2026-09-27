@@ -194,10 +194,10 @@ export function JobsPage() {
           title="Submit a job"
           source="the job orchestrator"
           actions={
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Select
                 aria-label="Job type"
-                className="w-56"
+                className="w-56 max-w-full"
                 value={jobType}
                 onValueChange={(value) => {
                   setJobType(value as JobType);
