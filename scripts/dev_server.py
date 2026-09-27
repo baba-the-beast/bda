@@ -76,10 +76,15 @@ dev_app = FastAPI(
     lifespan=lifespan,
 )
 
+# Deployed behind a separate frontend origin (Vercel), CORS_ALLOWED_ORIGINS lists
+# the origins allowed to call the API. Unset, any origin may, which suits local
+# development. Auth is bearer tokens, not cookies, so credentials stay off.
+cors_origins = [o.strip() for o in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",") if o.strip()]
+
 dev_app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=cors_origins or ["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )

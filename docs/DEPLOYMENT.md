@@ -137,3 +137,41 @@ kubectl get pods -n bda-energy -o wide
 curl -k https://energy.bda.internal/health
 curl -k https://energy.bda.internal/api/v1/analytics/overview
 ```
+
+---
+
+## 6. Hosted Demo: Render (API) + Vercel (Frontend)
+
+The cheapest public deployment: the API as one free Render web service, the
+React build on Vercel, and MongoDB on a free Atlas cluster.
+
+### 6.1 MongoDB Atlas
+1. Create a free M0 cluster and a database user.
+2. Under Network Access, allow `0.0.0.0/0` (Render's free plan has no fixed outbound IP).
+3. Copy the connection string (`mongodb+srv://...`).
+
+### 6.2 Render (backend API)
+1. New → Blueprint → select this repository. `render.yaml` defines a single
+   free web service, `bda-backend-api`.
+2. When prompted, set `MONGO_URI` to the Atlas string. Leave
+   `CORS_ALLOWED_ORIGINS` empty for now.
+3. After the deploy, check `https://<service>.onrender.com/health`.
+
+### 6.3 Vercel (frontend)
+1. New Project → select this repository, set **Root Directory** to `frontend`.
+   `frontend/vercel.json` supplies the build command, output directory and
+   the SPA rewrite.
+2. Add the environment variable `VITE_API_URL` = `https://<service>.onrender.com`
+   (the client appends `/api/v1`). It is read at build time, so redeploy after
+   changing it.
+
+### 6.4 Connect the two
+Back in Render, set `CORS_ALLOWED_ORIGINS` to the Vercel URL, e.g.
+`https://bda-energy.vercel.app` (comma-separate several; no trailing slash).
+
+### 6.5 Free-plan limits
+- The API sleeps after 15 minutes idle; the first request afterwards takes ~1 minute.
+- The disk is ephemeral: files under `LOCAL_HDFS_ROOT` (uploaded datasets and
+  job outputs) are lost on every restart or redeploy, while their metadata in
+  MongoDB remains. Re-upload datasets after the service restarts.
+- 512 MB RAM: keep uploads to a modest size.
