@@ -14,7 +14,8 @@ COPY tools/render_monitor/monitor.py /app/monitor.py
 # STATUS_HOST only matters when STATUS_PORT is set. Inside a container the
 # loopback address is unreachable from the host, so bind all interfaces and let
 # `docker run -p` decide what is published.
-ENV PYTHONUNBUFFERED=1     STATUS_HOST=0.0.0.0
+ENV PYTHONUNBUFFERED=1 \
+    STATUS_HOST=0.0.0.0
 
 USER 10001:10001
 

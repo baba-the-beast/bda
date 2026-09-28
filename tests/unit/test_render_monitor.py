@@ -2,6 +2,7 @@
 
 import json
 import signal
+import socket
 import threading
 import time
 from contextlib import contextmanager
@@ -156,6 +157,25 @@ def test_env_file_parsing(tmp_path):
         "PING_INTERVAL_MINUTES": "12",
     }
     assert rm.read_env_file(tmp_path / "missing") == {}
+
+
+def test_env_file_with_bom_is_accepted(tmp_path):
+    env_file = tmp_path / ".env"
+    env_file.write_bytes("RENDER_URL=https://my-app.onrender.com\n".encode("utf-8-sig"))
+    assert rm.read_env_file(env_file) == {"RENDER_URL": "https://my-app.onrender.com"}
+
+
+@pytest.mark.parametrize("kind", ["utf16", "directory"])
+def test_unreadable_env_file_is_config_error(tmp_path, monkeypatch, kind):
+    if kind == "utf16":
+        target = tmp_path / ".env"
+        target.write_text("RENDER_URL=https://my-app.onrender.com\n", encoding="utf-16")
+    else:
+        target = tmp_path
+    with pytest.raises(rm.ConfigError):
+        rm.read_env_file(target)
+    monkeypatch.setenv("RENDER_URL", "https://my-app.onrender.com")
+    assert rm.main(["--once", "--env-file", str(target)]) == 2
 
 
 # --------------------------------------------------------------------------- #
@@ -397,3 +417,25 @@ def test_real_signal_interrupts_long_interval():
         assert mon.stopping and mon.stats.total == 1
     finally:
         signal.signal(signal.SIGINT, previous)
+
+
+def test_busy_status_port_does_not_stop_monitoring(monkeypatch, tmp_path, caplog):
+    blocker = socket.socket()
+    blocker.bind(("127.0.0.1", 0))
+    blocker.listen()
+    port = blocker.getsockname()[1]
+    ran = []
+    monkeypatch.setattr(rm.Monitor, "run", lambda self: ran.append(True))
+    monkeypatch.delenv("RENDER_EXTERNAL_URL", raising=False)
+    monkeypatch.setenv("RENDER_URL", "https://my-app.onrender.com")
+    monkeypatch.setenv("STATUS_PORT", str(port))
+    previous = {s: signal.getsignal(s) for s in (signal.SIGINT, signal.SIGTERM)}
+    try:
+        with caplog.at_level("WARNING", logger="render_monitor"):
+            assert rm.main(["--env-file", str(tmp_path / "none")]) == 0
+    finally:
+        blocker.close()
+        for s, handler in previous.items():
+            signal.signal(s, handler)
+    assert ran == [True]
+    assert "Status endpoint disabled" in caplog.text

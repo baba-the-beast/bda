@@ -144,12 +144,17 @@ def load_config(env: Mapping[str, str]) -> Config:
 
 
 def read_env_file(path: Path) -> dict[str, str]:
-    """Parse a simple KEY=VALUE .env file. Missing file -> empty dict."""
+    """Parse a simple KEY=VALUE .env file. Missing file -> empty dict; unreadable -> ConfigError."""
     values: dict[str, str] = {}
     try:
-        lines = path.read_text(encoding="utf-8").splitlines()
+        # utf-8-sig also accepts the BOM that PowerShell's Out-File writes.
+        lines = path.read_text(encoding="utf-8-sig").splitlines()
     except FileNotFoundError:
         return values
+    except UnicodeDecodeError:
+        raise ConfigError(f"env file {path} is not UTF-8 text (re-save it as UTF-8)") from None
+    except OSError as exc:
+        raise ConfigError(f"cannot read env file {path}: {exc.strerror or exc.__class__.__name__}") from None
     for line in lines:
         line = line.strip()
         if not line or line.startswith("#") or "=" not in line:
@@ -446,10 +451,9 @@ def main(argv: list[str] | None = None) -> int:
 
     logging.basicConfig(level=logging.INFO, format="%(message)s", stream=sys.stdout)
 
-    # Real environment variables win over the file.
-    env = {**read_env_file(args.env_file), **os.environ}
     try:
-        config = load_config(env)
+        # Real environment variables win over the file.
+        config = load_config({**read_env_file(args.env_file), **os.environ})
     except ConfigError as exc:
         logger.error(f"Configuration error: {exc}")
         return 2
@@ -462,8 +466,15 @@ def main(argv: list[str] | None = None) -> int:
 
     server = None
     if config.status_port:
-        server = start_status_server(monitor)
-        logger.info(f"Status endpoint: http://{config.status_host}:{config.status_port}/status")
+        try:
+            server = start_status_server(monitor)
+            logger.info(f"Status endpoint: http://{config.status_host}:{config.status_port}/status")
+        except OSError as exc:
+            # The status page is optional; keep-alive checks matter more than an unavailable port.
+            logger.warning(
+                f"Status endpoint disabled: cannot bind {config.status_host}:{config.status_port} "
+                f"({exc.strerror or exc.__class__.__name__}). Health checks continue."
+            )
     try:
         monitor.run()
     finally:
