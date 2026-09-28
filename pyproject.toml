@@ -50,6 +50,8 @@ extend-immutable-calls = [
 "shared/engines/full_bda.py" = ["S603"]
 # WebHDFS endpoints are constructed from operator-supplied configuration, not user input.
 "shared/hdfs.py" = ["S310"]
+# The keep-alive monitor's target is RENDER_URL, restricted to http(s) in normalize_url().
+"tools/render_monitor/monitor.py" = ["S310"]
 # SQL is assembled only from whitelisted templates. Every interpolated value is either
 # int()/float()-coerced and bounds-checked, run through sanitize_parameter(), or a
 # server-side path; execute_analytical_query() additionally calls validate_query_safety().

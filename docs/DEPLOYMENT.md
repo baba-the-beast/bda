@@ -171,6 +171,8 @@ Back in Render, set `CORS_ALLOWED_ORIGINS` to the Vercel URL, e.g.
 
 ### 6.5 Free-plan limits
 - The API sleeps after 15 minutes idle; the first request afterwards takes ~1 minute.
+  To monitor reachability (and reduce cold starts), run the keep-alive monitor
+  from a separate machine: see `tools/render_monitor/README.md`.
 - The disk is ephemeral: files under `LOCAL_HDFS_ROOT` (uploaded datasets and
   job outputs) are lost on every restart or redeploy, while their metadata in
   MongoDB remains. Re-upload datasets after the service restarts.

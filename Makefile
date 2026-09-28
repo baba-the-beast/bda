@@ -1,4 +1,4 @@
-.PHONY: help install dev frontend test verify lint clean docker-up docker-down
+.PHONY: help install dev frontend test verify lint clean docker-up docker-down keepalive
 
 help:
 	@echo "Big Data Energy Consumption Analytics Platform"
@@ -10,6 +10,7 @@ help:
 	@echo "  make verify      - Run independent analytics correctness triangulation"
 	@echo "  make docker-up   - Launch full stack via Docker Compose"
 	@echo "  make docker-down - Tear down Docker Compose containers"
+	@echo "  make keepalive   - Run the Render keep-alive monitor (set RENDER_URL; run off-Render)"
 	@echo "  make clean       - Remove cache files and build artifacts"
 
 install:
@@ -33,6 +34,9 @@ docker-up:
 
 docker-down:
 	docker compose down -v
+
+keepalive:
+	python tools/render_monitor/monitor.py
 
 clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} +
